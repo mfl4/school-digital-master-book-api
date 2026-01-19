@@ -39,7 +39,7 @@ class UserFactory extends Factory
      */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'email_verified_at' => null,
         ]);
     }
@@ -49,7 +49,7 @@ class UserFactory extends Factory
      */
     public function admin(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'role' => UserRole::ADMIN,
         ]);
     }
@@ -59,7 +59,7 @@ class UserFactory extends Factory
      */
     public function guru(?int $subjectId = null): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'role' => UserRole::GURU,
             'subject' => $subjectId,
         ]);
@@ -70,7 +70,7 @@ class UserFactory extends Factory
      */
     public function waliKelas(?string $class = null): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'role' => UserRole::WALI_KELAS,
             'class' => $class ?? 'X-1',
         ]);
@@ -81,7 +81,7 @@ class UserFactory extends Factory
      */
     public function alumni(?string $nim = null): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'role' => UserRole::ALUMNI,
             'alumni' => $nim ?? fake()->numerify('##########'),
         ]);
