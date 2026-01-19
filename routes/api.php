@@ -11,3 +11,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/current-user', [AuthController::class, 'currentUser']);
     Route::delete('/logout', [AuthController::class, 'logout']);
 });
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::get('/admin-only-test', function () {
+        return response()->json([
+            'message' => 'Hello Admin'
+        ]);
+    });
+});
+
+Route::middleware(['auth:sanctum', 'role:guru,wali_kelas'])->group(function () {
+    Route::get('/teacher-area-test', function () {
+        return response()->json([
+            'message' => 'Hello Teacher'
+        ]);
+    });
+});
