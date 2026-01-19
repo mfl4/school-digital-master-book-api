@@ -2,42 +2,43 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\UserRole;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * RoleMiddleware
+ * 
+ * Middleware untuk memvalidasi role pengguna.
+ * Setiap user HANYA memiliki SATU role, sehingga pengecekan sederhana.
+ */
 class RoleMiddleware
 {
     /**
-     * Handle an incoming request.
+     * Handle incoming request
      *
-     * Middleware untuk memvalidasi role pengguna.
-     * Penggunaan: middleware('role:admin') atau middleware('role:admin,guru,wali_kelas')
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  ...$roles  Daftar role yang diizinkan (comma-separated)
+     * @param Request $request
+     * @param Closure $next
+     * @param string $role Role yang diizinkan mengakses route
      */
-    public function handle(Request $request, Closure $next, string ...$roles): Response
+    public function handle(Request $request, Closure $next, string $role): Response
     {
         $user = $request->user();
 
-        // Cek apakah user sudah terautentikasi
+        // Cek apakah user sudah login
         if (!$user) {
             return response()->json([
-                'message' => 'Anda harus login terlebih dahulu',
-                'error' => 'unauthenticated'
+                'message' => 'Unauthenticated.',
+                'error' => 'Silakan login terlebih dahulu'
             ], 401);
         }
 
-        // Validasi role
-        $allowedRoles = array_map('trim', $roles);
-
-        if (!in_array($user->role, $allowedRoles, true)) {
+        // Cek apakah role user sesuai dengan yang diizinkan
+        if ($user->role !== $role) {
             return response()->json([
-                'message' => 'Anda tidak memiliki akses ke resource ini',
-                'error' => 'forbidden',
-                'required_roles' => $allowedRoles,
+                'message' => 'Forbidden.',
+                'error' => 'Anda tidak memiliki akses ke halaman ini',
+                'required_role' => $role,
                 'your_role' => $user->role
             ], 403);
         }
