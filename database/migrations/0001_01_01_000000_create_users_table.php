@@ -4,6 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Migration untuk tabel users
+ *
+ * Deskripsi:
+ * - Setiap user HANYA boleh memiliki SATU role
+ * - Field subject, class, alumni bersifat opsional tergantung role
+ * - Menggunakan CHECK constraint untuk validasi role di level database
+ */
 return new class extends Migration
 {
     /**
@@ -15,10 +23,29 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            // Role: HANYA BOLEH SATU per user
+            // Menggunakan ENUM untuk validasi di level database (PostgreSQL)
+            $table->enum('role', ['admin', 'guru', 'wali_kelas', 'alumni'])
+                ->default('alumni')
+                ->comment('Role pengguna - setiap user hanya boleh punya 1 role');
+
+            // Field opsional berdasarkan role
+            $table->unsignedBigInteger('subject')->nullable()
+                ->comment('ID mata pelajaran - hanya untuk role guru');
+            $table->string('class', 10)->nullable()
+                ->comment('Kode kelas (X-1, XI-2, XII-3) - hanya untuk role wali_kelas');
+            $table->string('alumni', 20)->nullable()
+                ->comment('NIM alumni - hanya untuk role alumni');
+
             $table->rememberToken();
             $table->timestamps();
+
+            // Index untuk performa query
+            $table->index('role');
+            $table->index('subject');
+            $table->index('class');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -42,8 +69,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };
