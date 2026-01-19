@@ -36,6 +36,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'subject',
+        'class',
+        'alumni',
     ];
 
     /**
@@ -64,5 +67,25 @@ class User extends Authenticatable
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isGuru(): bool
+    {
+        return $this->role === 'guru';
+    }
+
+    public function isWaliKelas(): bool
+    {
+        return $this->role === 'wali_kelas';
+    }
+
+    public function isAlumni(): bool
+    {
+        return $this->role === 'alumni';
     }
 }
