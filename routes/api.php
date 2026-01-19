@@ -12,6 +12,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/logout', [AuthController::class, 'logout']);
 });
 
+/**
+ * @OA\Get(
+ *     path="/api/admin-only-test",
+ *     tags={"Admin"},
+ *     summary="Admin test endpoint",
+ *     security={{"sanctum":{}}},
+ *     @OA\Response(response=200, description="OK"),
+ *     @OA\Response(response=403, description="Forbidden")
+ * )
+ */
+
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/admin-only-test', function () {
         return response()->json([

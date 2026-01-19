@@ -211,9 +211,10 @@
         },
         "securitySchemes": {
             "sanctum": {
-                "type": "http",
-                "bearerFormat": "JWT",
-                "scheme": "bearer"
+                "type": "apiKey",
+                "description": "Enter token in format (Bearer <token>)",
+                "name": "Authorization",
+                "in": "header"
             }
         }
     },
