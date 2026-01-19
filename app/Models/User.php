@@ -2,44 +2,76 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+
 use OpenApi\Attributes as OA;
 
+/**
+ * User Model
+ * 
+ * Role yang tersedia:
+ * - admin: Akses penuh ke semua fitur
+ * - guru: Guru mata pelajaran, hanya bisa input nilai mapel yang diampu
+ * - wali_kelas: Wali kelas, bisa akses semua data siswa di kelasnya
+ * - alumni: Alumni, bisa update data pribadi
+ */
 #[OA\Schema(
     schema: 'User',
-    type: 'object',
+    title: 'User',
+    description: 'Model User untuk autentikasi dan otorisasi',
+    required: ['id', 'name', 'email', 'role'],
     properties: [
-        new OA\Property(property: 'id', type: 'integer', example: 1),
+        new OA\Property(property: 'id', type: 'integer', format: 'int64', example: 1),
         new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
-        new OA\Property(property: 'email_verified_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(
             property: 'role',
             type: 'string',
             enum: ['admin', 'guru', 'wali_kelas', 'alumni'],
-            example: 'admin'
+            example: 'admin',
+            description: 'Role pengguna (setiap user hanya boleh punya 1 role)'
         ),
-        new OA\Property(property: 'subject', type: 'integer', nullable: true, description: 'Subject ID jika guru'),
-        new OA\Property(property: 'class', type: 'string', nullable: true, example: 'X-1', description: 'Kelas jika wali kelas'),
-        new OA\Property(property: 'alumni', type: 'string', nullable: true, description: 'NIM jika alumni'),
+        new OA\Property(
+            property: 'subject',
+            type: 'integer',
+            nullable: true,
+            example: 1,
+            description: 'ID mata pelajaran (hanya untuk role guru)'
+        ),
+        new OA\Property(
+            property: 'class',
+            type: 'string',
+            nullable: true,
+            example: 'X-1',
+            description: 'Kode kelas (hanya untuk role wali_kelas)'
+        ),
+        new OA\Property(
+            property: 'alumni',
+            type: 'string',
+            nullable: true,
+            example: 'A001',
+            description: 'NIM alumni (hanya untuk role alumni)'
+        ),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
         new OA\Property(property: 'updated_at', type: 'string', format: 'date-time')
     ]
 )]
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLES = [
+        'admin',
+        'guru',
+        'wali_kelas',
+        'alumni',
+    ];
+
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * Atribut yang boleh diisi secara mass assignment
      */
     protected $fillable = [
         'name',
@@ -52,9 +84,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * Atribut yang disembunyikan saat serialisasi
      */
     protected $hidden = [
         'password',
@@ -62,17 +92,16 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * Casting atribut ke tipe data tertentu
      */
     protected function casts(): array
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return [];
     }
+
+    // =========================================================================
+    // HELPER METHODS - Untuk pengecekan role
+    // =========================================================================
 
     /**
      * Cek apakah user memiliki role tertentu
@@ -83,38 +112,56 @@ class User extends Authenticatable
     }
 
     /**
-     * Cek apakah user memiliki salah satu dari beberapa role
+     * Cek apakah user adalah Admin
      */
-    public function hasAnyRole(array $roles): bool
-    {
-        return in_array($this->role, $roles, true);
-    }
-
     public function isAdmin(): bool
     {
-        return $this->role === UserRole::ADMIN;
-    }
-
-    public function isGuru(): bool
-    {
-        return $this->role === UserRole::GURU;
-    }
-
-    public function isWaliKelas(): bool
-    {
-        return $this->role === UserRole::WALI_KELAS;
-    }
-
-    public function isAlumni(): bool
-    {
-        return $this->role === UserRole::ALUMNI;
+        return $this->hasRole('admin');
     }
 
     /**
-     * Scope untuk filter berdasarkan role
+     * Cek apakah user adalah Guru
      */
-    public function scopeByRole($query, string $role)
+    public function isGuru(): bool
     {
-        return $query->where('role', $role);
+        return $this->hasRole('guru');
     }
+
+    /**
+     * Cek apakah user adalah Wali Kelas
+     */
+    public function isWaliKelas(): bool
+    {
+        return $this->hasRole('wali_kelas');
+    }
+
+    /**
+     * Cek apakah user adalah Alumni
+     */
+    public function isAlumni(): bool
+    {
+        return $this->hasRole('alumni');
+    }
+
+    // =========================================================================
+    // RELATIONSHIPS
+    // =========================================================================
+
+    /**
+     * Relasi ke Subject (untuk role guru)
+     * Teacher hanya bisa mengajar SATU mata pelajaran
+     */
+    // public function subjectRelation()
+    // {
+    //     return $this->belongsTo(Subject::class, 'subject');
+    // }
+
+    /**
+ * Relasi ke Alumni (untuk role alumni)
+ * Alumni dihubungkan via nim
+ */
+    // public function alumniRelation()
+    // {
+    //     return $this->belongsTo(Alumni::class, 'alumni', 'nim');
+    // }
 }
