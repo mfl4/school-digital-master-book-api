@@ -2,46 +2,42 @@
 
 namespace Database\Factories;
 
-use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * UserFactory
+ * 
+ * Factory untuk membuat data User dummy saat testing.
+ * Menggunakan konstanta role dari User::ROLES.
+ * 
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
     /**
-     * The current password being used by the factory.
+     * Password default yang di-cache untuk performa
      */
     protected static ?string $password = null;
 
     /**
      * Define the model's default state.
-     *
-     * @return array<string, mixed>
+     * Default: role admin tanpa context fields
      */
     public function definition(): array
     {
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'role' => UserRole::ADMIN,
+            'role' => 'admin',
+            'subject' => null,
+            'class' => null,
+            'alumni' => null,
             'remember_token' => Str::random(10),
         ];
-    }
-
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn(array $attributes) => [
-            'email_verified_at' => null,
-        ]);
     }
 
     /**
@@ -50,7 +46,10 @@ class UserFactory extends Factory
     public function admin(): static
     {
         return $this->state(fn(array $attributes) => [
-            'role' => UserRole::ADMIN,
+            'role' => 'admin',
+            'subject' => null,
+            'class' => null,
+            'alumni' => null,
         ]);
     }
 
@@ -60,8 +59,10 @@ class UserFactory extends Factory
     public function guru(?int $subjectId = null): static
     {
         return $this->state(fn(array $attributes) => [
-            'role' => UserRole::GURU,
+            'role' => 'guru',
             'subject' => $subjectId,
+            'class' => null,
+            'alumni' => null,
         ]);
     }
 
@@ -71,8 +72,10 @@ class UserFactory extends Factory
     public function waliKelas(?string $class = null): static
     {
         return $this->state(fn(array $attributes) => [
-            'role' => UserRole::WALI_KELAS,
+            'role' => 'wali_kelas',
+            'subject' => null,
             'class' => $class ?? 'X-1',
+            'alumni' => null,
         ]);
     }
 
@@ -82,8 +85,10 @@ class UserFactory extends Factory
     public function alumni(?string $nim = null): static
     {
         return $this->state(fn(array $attributes) => [
-            'role' => UserRole::ALUMNI,
-            'alumni' => $nim ?? fake()->numerify('##########'),
+            'role' => 'alumni',
+            'subject' => null,
+            'class' => null,
+            'alumni' => $nim ?? fake()->numerify('A#######'),
         ]);
     }
 }
