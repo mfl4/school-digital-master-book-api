@@ -2,20 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 use OpenApi\Attributes as OA;
 
+/**
+ * AuthController
+ * 
+ * Controller untuk menangani autentikasi pengguna:
+ * - Login: Autentikasi dan generate token
+ * - Logout: Hapus token aktif
+ * - Current User: Ambil data pengguna yang sedang login
+ */
 class AuthController extends Controller
 {
     /**
      * Login user dan generate token Sanctum
+     * 
+     * Proses:
+     * 1. Validasi input email dan password
+     * 2. Cari user berdasarkan email
+     * 3. Verifikasi password dengan Hash::check()
+     * 4. Generate token baru menggunakan Sanctum
+     * 5. Kembalikan response dengan token dan data user
      */
     #[OA\Post(
         path: '/api/login',
@@ -51,13 +63,11 @@ class AuthController extends Controller
                 description: 'Login berhasil',
                 content: new OA\JsonContent(
                     properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
                         new OA\Property(property: 'message', type: 'string', example: 'Login berhasil'),
                         new OA\Property(property: 'access_token', type: 'string', example: '1|abc123xyz...'),
                         new OA\Property(property: 'token_type', type: 'string', example: 'Bearer'),
-                        new OA\Property(
-                            property: 'user',
-                            ref: '#/components/schemas/User'
-                        )
+                        new OA\Property(property: 'data', ref: '#/components/schemas/User')
                     ]
                 )
             ),
@@ -76,11 +86,7 @@ class AuthController extends Controller
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'message', type: 'string', example: 'Data yang diberikan tidak valid'),
-                        new OA\Property(
-                            property: 'errors',
-                            type: 'object',
-                            example: ['email' => ['Email wajib diisi']]
-                        )
+                        new OA\Property(property: 'errors', type: 'object', example: ['email' => ['Email wajib diisi']])
                     ]
                 )
             )
@@ -88,6 +94,7 @@ class AuthController extends Controller
     )]
     public function login(Request $request): JsonResponse
     {
+        // Validasi input dengan pesan error dalam Bahasa Indonesia
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:6']
@@ -101,25 +108,23 @@ class AuthController extends Controller
         // Cari user berdasarkan email
         $user = User::where('email', $validated['email'])->first();
 
-        // Validasi kredensial
+        // Validasi ketika user tidak ditemukan ATAU password tidak cocok
         if (!$user || !Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'message' => 'Email atau password salah'
             ], 401);
         }
 
-        // Hapus token lama (opsional - untuk single device login)
-        // $user->tokens()->delete();
-
-        // Buat token baru dengan nama yang deskriptif
+        // Generate token dengan nama unik
         $tokenName = 'auth_token_' . $user->id . '_' . now()->timestamp;
         $token = $user->createToken($tokenName)->plainTextToken;
 
         return response()->json([
+            'success' => true,
             'message' => 'Login berhasil',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => [
+            'data' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
@@ -133,6 +138,11 @@ class AuthController extends Controller
 
     /**
      * Logout user dan hapus token saat ini
+     * 
+     * Proses:
+     * 1. Ambil token yang sedang digunakan via currentAccessToken()
+     * 2. Hapus token tersebut dari database
+     * 3. Kembalikan response sukses
      */
     #[OA\Post(
         path: '/api/logout',
@@ -146,6 +156,7 @@ class AuthController extends Controller
                 description: 'Logout berhasil',
                 content: new OA\JsonContent(
                     properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
                         new OA\Property(property: 'message', type: 'string', example: 'Logout berhasil')
                     ]
                 )
@@ -163,56 +174,20 @@ class AuthController extends Controller
     )]
     public function logout(Request $request): JsonResponse
     {
-        // Hapus token yang sedang digunakan
+        // Hapus token saat ini
         $request->user()->currentAccessToken()->delete();
-
         return response()->json([
+            'success' => true,
             'message' => 'Logout berhasil'
         ]);
     }
 
     /**
-     * Logout dari semua perangkat
-     */
-    #[OA\Post(
-        path: '/api/logout-all',
-        tags: ['Authentication'],
-        summary: 'Logout dari semua perangkat',
-        description: 'Menghapus semua access token pengguna (logout dari semua device)',
-        security: [['sanctum' => []]],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Logout dari semua perangkat berhasil',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Logout dari semua perangkat berhasil')
-                    ]
-                )
-            ),
-            new OA\Response(
-                response: 401,
-                description: 'Tidak terautentikasi',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Unauthenticated.')
-                    ]
-                )
-            )
-        ]
-    )]
-    public function logoutAll(Request $request): JsonResponse
-    {
-        // Hapus semua token user
-        $request->user()->tokens()->delete();
-
-        return response()->json([
-            'message' => 'Logout dari semua perangkat berhasil'
-        ]);
-    }
-
-    /**
      * Get data user yang sedang login
+     * 
+     * Proses:
+     * 1. Ambil user dari request (sudah di-inject oleh middleware auth:sanctum)
+     * 2. Kembalikan data user lengkap
      */
     #[OA\Get(
         path: '/api/current-user',
@@ -227,10 +202,7 @@ class AuthController extends Controller
                 content: new OA\JsonContent(
                     properties: [
                         new OA\Property(property: 'message', type: 'string', example: 'Data user berhasil diambil'),
-                        new OA\Property(
-                            property: 'user',
-                            ref: '#/components/schemas/User'
-                        )
+                        new OA\Property(property: 'data', ref: '#/components/schemas/User')
                     ]
                 )
             ),
@@ -249,57 +221,7 @@ class AuthController extends Controller
     {
         return response()->json([
             'message' => 'Data user berhasil diambil',
-            'user' => $request->user()
-        ]);
-    }
-
-    /**
-     * Refresh token - buat token baru dan hapus yang lama
-     */
-    #[OA\Post(
-        path: '/api/refresh-token',
-        tags: ['Authentication'],
-        summary: 'Refresh access token',
-        description: 'Membuat access token baru dan menghapus token yang sedang digunakan',
-        security: [['sanctum' => []]],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Token berhasil di-refresh',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Token berhasil di-refresh'),
-                        new OA\Property(property: 'access_token', type: 'string', example: '2|xyz789abc...'),
-                        new OA\Property(property: 'token_type', type: 'string', example: 'Bearer')
-                    ]
-                )
-            ),
-            new OA\Response(
-                response: 401,
-                description: 'Tidak terautentikasi',
-                content: new OA\JsonContent(
-                    properties: [
-                        new OA\Property(property: 'message', type: 'string', example: 'Unauthenticated.')
-                    ]
-                )
-            )
-        ]
-    )]
-    public function refreshToken(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        // Hapus token saat ini
-        $user->currentAccessToken()->delete();
-
-        // Buat token baru
-        $tokenName = 'auth_token_' . $user->id . '_' . now()->timestamp;
-        $newToken = $user->createToken($tokenName)->plainTextToken;
-
-        return response()->json([
-            'message' => 'Token berhasil di-refresh',
-            'access_token' => $newToken,
-            'token_type' => 'Bearer'
+            'data' => $request->user()
         ]);
     }
 }
