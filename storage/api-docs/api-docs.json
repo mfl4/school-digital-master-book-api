@@ -69,6 +69,10 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
                                         "message": {
                                             "type": "string",
                                             "example": "Login berhasil"
@@ -81,7 +85,7 @@
                                             "type": "string",
                                             "example": "Bearer"
                                         },
-                                        "user": {
+                                        "data": {
                                             "$ref": "#/components/schemas/User"
                                         }
                                     },
@@ -148,58 +152,13 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
                                         "message": {
                                             "type": "string",
                                             "example": "Logout berhasil"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Tidak terautentikasi",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            }
-        },
-        "/api/logout-all": {
-            "post": {
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Logout dari semua perangkat",
-                "description": "Menghapus semua access token pengguna (logout dari semua device)",
-                "operationId": "2f032076daedd37570b14e067992d96b",
-                "responses": {
-                    "200": {
-                        "description": "Logout dari semua perangkat berhasil",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Logout dari semua perangkat berhasil"
                                         }
                                     },
                                     "type": "object"
@@ -250,65 +209,8 @@
                                             "type": "string",
                                             "example": "Data user berhasil diambil"
                                         },
-                                        "user": {
+                                        "data": {
                                             "$ref": "#/components/schemas/User"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Tidak terautentikasi",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Unauthenticated."
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            }
-        },
-        "/api/refresh-token": {
-            "post": {
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Refresh access token",
-                "description": "Membuat access token baru dan menghapus token yang sedang digunakan",
-                "operationId": "833684aa6f123680767976945e7c783c",
-                "responses": {
-                    "200": {
-                        "description": "Token berhasil di-refresh",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Token berhasil di-refresh"
-                                        },
-                                        "access_token": {
-                                            "type": "string",
-                                            "example": "2|xyz789abc..."
-                                        },
-                                        "token_type": {
-                                            "type": "string",
-                                            "example": "Bearer"
                                         }
                                     },
                                     "type": "object"
@@ -344,9 +246,19 @@
     "components": {
         "schemas": {
             "User": {
+                "title": "User",
+                "description": "Model User untuk autentikasi dan otorisasi",
+                "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "role"
+                ],
                 "properties": {
                     "id": {
+                        "description": "User Model\n\nRole yang tersedia:\n- admin: Akses penuh ke semua fitur\n- guru: Guru mata pelajaran, hanya bisa input nilai mapel yang diampu\n- wali_kelas: Wali kelas, bisa akses semua data siswa di kelasnya\n- alumni: Alumni, bisa update data pribadi",
                         "type": "integer",
+                        "format": "int64",
                         "example": 1
                     },
                     "name": {
@@ -358,12 +270,8 @@
                         "format": "email",
                         "example": "john@example.com"
                     },
-                    "email_verified_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                    },
                     "role": {
+                        "description": "Role pengguna (setiap user hanya boleh punya 1 role)",
                         "type": "string",
                         "enum": [
                             "admin",
@@ -374,19 +282,21 @@
                         "example": "admin"
                     },
                     "subject": {
-                        "description": "Subject ID jika guru",
+                        "description": "ID mata pelajaran (hanya untuk role guru)",
                         "type": "integer",
+                        "example": 1,
                         "nullable": true
                     },
                     "class": {
-                        "description": "Kelas jika wali kelas",
+                        "description": "Kode kelas (hanya untuk role wali_kelas)",
                         "type": "string",
                         "example": "X-1",
                         "nullable": true
                     },
                     "alumni": {
-                        "description": "NIM jika alumni",
+                        "description": "NIM alumni (hanya untuk role alumni)",
                         "type": "string",
+                        "example": "A001",
                         "nullable": true
                     },
                     "created_at": {
