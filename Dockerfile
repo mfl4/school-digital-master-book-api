@@ -19,8 +19,6 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
     && docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -33,12 +31,6 @@ COPY composer.json composer.lock ./
 
 # Instal PHP dependencies tanpa dev packages
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
-
-# Salin file package.json dan package-lock.json
-COPY package.json package-lock.json* ./
-
-# Instal Node.js dependencies dan build assets
-RUN npm install && npm run build
 
 # Salin semua file aplikasi
 COPY . .
