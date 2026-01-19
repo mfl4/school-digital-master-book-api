@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
@@ -8,83 +7,37 @@ use App\Http\Controllers\AuthController;
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|
-| Route untuk API Buku Induk Digital
-| Prefix: /api
-|
 */
 
 // ============================================================================
-// PUBLIC ROUTES (Tidak perlu autentikasi)
+// PUBLIC ROUTES - Tidak memerlukan autentikasi
 // ============================================================================
 
-Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
+Route::post('/login', [AuthController::class, 'login'])
+    ->name('auth.login');
 
 // ============================================================================
-// AUTHENTICATED ROUTES (Perlu login)
+// PROTECTED ROUTES - Memerlukan token autentikasi
 // ============================================================================
 
 Route::middleware('auth:sanctum')->group(function () {
 
     // --- Authentication Routes ---
-    Route::prefix('')->group(function () {
-        Route::get('/current-user', [AuthController::class, 'currentUser'])->name('auth.current-user');
-        Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
-        Route::post('/logout-all', [AuthController::class, 'logoutAll'])->name('auth.logout-all');
-        Route::post('/refresh-token', [AuthController::class, 'refreshToken'])->name('auth.refresh-token');
-    });
+    Route::post('/logout', [AuthController::class, 'logout'])
+        ->name('auth.logout');
 
-    // ========================================================================
-    // ADMIN ONLY ROUTES
-    // ========================================================================
+    Route::get('/current-user', [AuthController::class, 'currentUser'])
+        ->name('auth.current-user');
 
-    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        // Test endpoint untuk admin
-        Route::get('/test', function () {
-            return response()->json([
-                'message' => 'Selamat datang Admin!',
-                'user' => request()->user()->only(['id', 'name', 'email', 'role'])
-            ]);
-        })->name('test');
+    // Hanya user dengan role 'admin' yang bisa mengakses
+    Route::middleware('role:admin')->name('admin.')->group(function () {});
 
-        // Tambahkan route admin lainnya di sini
-        // Route::apiResource('users', UserController::class);
-        // Route::apiResource('students', StudentController::class);
-        // Route::apiResource('alumni', AlumniController::class);
-    });
+    // Hanya user dengan role 'admin' dan 'guru' yang bisa mengakses
+    Route::middleware(['role:admin', 'role:guru'])->name('guru.')->group(function () {});
 
-    // ========================================================================
-    // TEACHER ROUTES (Guru & Wali Kelas)
-    // ========================================================================
+    // Hanya user dengan role 'admin' dan 'wali_kelas' yang bisa mengakses
+    Route::middleware(['role:admin', 'role:wali_kelas'])->name('wali_kelas.')->group(function () {});
 
-    Route::middleware('role:guru,wali_kelas,admin')->prefix('teacher')->name('teacher.')->group(function () {
-        // Test endpoint untuk guru/wali kelas
-        Route::get('/test', function () {
-            return response()->json([
-                'message' => 'Selamat datang Guru/Wali Kelas!',
-                'user' => request()->user()->only(['id', 'name', 'email', 'role', 'subject', 'class'])
-            ]);
-        })->name('test');
-
-        // Tambahkan route teacher lainnya di sini
-        // Route::apiResource('grades', GradeController::class);
-    });
-
-    // ========================================================================
-    // ALUMNI ROUTES
-    // ========================================================================
-
-    Route::middleware('role:alumni,admin')->prefix('alumni')->name('alumni.')->group(function () {
-        // Test endpoint untuk alumni
-        Route::get('/test', function () {
-            return response()->json([
-                'message' => 'Selamat datang Alumni!',
-                'user' => request()->user()->only(['id', 'name', 'email', 'role', 'alumni'])
-            ]);
-        })->name('test');
-
-        // Tambahkan route alumni lainnya di sini
-        // Route::get('/profile', [AlumniController::class, 'profile']);
-        // Route::put('/profile', [AlumniController::class, 'updateProfile']);
-    });
+    // Hanya user dengan role 'admin' dan 'alumni' yang bisa mengakses
+    Route::middleware(['role:admin', 'role:alumni'])->name('alumni.')->group(function () {});
 });
