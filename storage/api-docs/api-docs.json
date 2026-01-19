@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "API Buku Induk Digital",
-        "description": "REST API untuk sistem Buku Induk Digital",
+        "description": "REST API untuk sistem Buku Induk Digital - Aplikasi manajemen data siswa, alumni, dan raport untuk institusi pendidikan.",
         "contact": {
             "name": "API Support",
             "url": "https://example.com/support",
@@ -17,11 +17,11 @@
     "servers": [
         {
             "url": "http://127.0.0.1:8000",
-            "description": "Local development server"
+            "description": "Local Development Server"
         },
         {
             "url": "https://api.example.com",
-            "description": "Production server"
+            "description": "Production Server"
         }
     ],
     "paths": {
@@ -30,7 +30,8 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Login user",
+                "summary": "Login pengguna",
+                "description": "Autentikasi pengguna dengan email dan password, mengembalikan access token untuk API",
                 "operationId": "a3b306d14572d1f4bd6c064b3233e7b8",
                 "requestBody": {
                     "required": true,
@@ -43,11 +44,16 @@
                                 ],
                                 "properties": {
                                     "email": {
+                                        "description": "Email pengguna terdaftar",
                                         "type": "string",
+                                        "format": "email",
                                         "example": "admin@mail.com"
                                     },
                                     "password": {
+                                        "description": "Password minimal 6 karakter",
                                         "type": "string",
+                                        "format": "password",
+                                        "minLength": 6,
                                         "example": "password"
                                     }
                                 },
@@ -58,38 +64,25 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Successful login",
+                        "description": "Login berhasil",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "Login successful"
+                                            "example": "Login berhasil"
                                         },
                                         "access_token": {
-                                            "type": "string"
+                                            "type": "string",
+                                            "example": "1|abc123xyz..."
                                         },
                                         "token_type": {
                                             "type": "string",
                                             "example": "Bearer"
                                         },
                                         "user": {
-                                            "properties": {
-                                                "id": {
-                                                    "type": "integer"
-                                                },
-                                                "name": {
-                                                    "type": "string"
-                                                },
-                                                "email": {
-                                                    "type": "string"
-                                                },
-                                                "role": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "type": "object"
+                                            "$ref": "#/components/schemas/User"
                                         }
                                     },
                                     "type": "object"
@@ -98,31 +91,66 @@
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials"
-                    },
-                    "422": {
-                        "description": "Validation error"
-                    }
-                }
-            }
-        },
-        "/api/logout": {
-            "delete": {
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Logout user",
-                "operationId": "fd694301e769d83fdd749695a3cc435b",
-                "responses": {
-                    "200": {
-                        "description": "Logged out",
+                        "description": "Kredensial tidak valid",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "Logged out successfully"
+                                            "example": "Email atau password salah"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validasi gagal",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Data yang diberikan tidak valid"
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "example": {
+                                                "email": [
+                                                    "Email wajib diisi"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout pengguna",
+                "description": "Menghapus access token pengguna yang sedang aktif",
+                "operationId": "fe8f3429cd6979b3b4517e186505f9f9",
+                "responses": {
+                    "200": {
+                        "description": "Logout berhasil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logout berhasil"
                                         }
                                     },
                                     "type": "object"
@@ -131,7 +159,69 @@
                         }
                     },
                     "401": {
-                        "description": "Unauthenticated"
+                        "description": "Tidak terautentikasi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/logout-all": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout dari semua perangkat",
+                "description": "Menghapus semua access token pengguna (logout dari semua device)",
+                "operationId": "2f032076daedd37570b14e067992d96b",
+                "responses": {
+                    "200": {
+                        "description": "Logout dari semua perangkat berhasil",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Logout dari semua perangkat berhasil"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Tidak terautentikasi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -146,21 +236,101 @@
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Get authenticated user",
+                "summary": "Data pengguna saat ini",
+                "description": "Mendapatkan data lengkap pengguna yang sedang terautentikasi",
                 "operationId": "60660183dfdda8b8a5d3f9958030d038",
                 "responses": {
                     "200": {
-                        "description": "Authenticated user data",
+                        "description": "Data user berhasil diambil",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/User"
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Data user berhasil diambil"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
                     },
                     "401": {
-                        "description": "Unauthenticated"
+                        "description": "Tidak terautentikasi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/refresh-token": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Refresh access token",
+                "description": "Membuat access token baru dan menghapus token yang sedang digunakan",
+                "operationId": "833684aa6f123680767976945e7c783c",
+                "responses": {
+                    "200": {
+                        "description": "Token berhasil di-refresh",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token berhasil di-refresh"
+                                        },
+                                        "access_token": {
+                                            "type": "string",
+                                            "example": "2|xyz789abc..."
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "Bearer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Tidak terautentikasi",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Unauthenticated."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -195,7 +365,29 @@
                     },
                     "role": {
                         "type": "string",
+                        "enum": [
+                            "admin",
+                            "guru",
+                            "wali_kelas",
+                            "alumni"
+                        ],
                         "example": "admin"
+                    },
+                    "subject": {
+                        "description": "Subject ID jika guru",
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "class": {
+                        "description": "Kelas jika wali kelas",
+                        "type": "string",
+                        "example": "X-1",
+                        "nullable": true
+                    },
+                    "alumni": {
+                        "description": "NIM jika alumni",
+                        "type": "string",
+                        "nullable": true
                     },
                     "created_at": {
                         "type": "string",
@@ -211,17 +403,17 @@
         },
         "securitySchemes": {
             "sanctum": {
-                "type": "apiKey",
-                "description": "Enter token in format (Bearer <token>)",
-                "name": "Authorization",
-                "in": "header"
+                "type": "http",
+                "description": "Masukkan token yang didapat dari endpoint login. Format: Bearer {token}",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
             }
         }
     },
     "tags": [
         {
             "name": "Authentication",
-            "description": "Authentication"
+            "description": "Endpoint untuk autentikasi pengguna (login, logout, refresh token)"
         }
     ]
 }
