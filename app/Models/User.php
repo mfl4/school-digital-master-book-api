@@ -7,8 +7,6 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-use OpenApi\Attributes as OA;
-
 /**
  * User Model
  * 
@@ -18,47 +16,6 @@ use OpenApi\Attributes as OA;
  * - wali_kelas: Wali kelas, bisa akses semua data siswa di kelasnya
  * - alumni: Alumni, bisa update data pribadi
  */
-#[OA\Schema(
-    schema: 'User',
-    title: 'User',
-    description: 'Model User untuk autentikasi dan otorisasi',
-    required: ['id', 'name', 'email', 'role'],
-    properties: [
-        new OA\Property(property: 'id', type: 'integer', format: 'int64', example: 1),
-        new OA\Property(property: 'name', type: 'string', example: 'John Doe'),
-        new OA\Property(property: 'email', type: 'string', format: 'email', example: 'john@example.com'),
-        new OA\Property(
-            property: 'role',
-            type: 'string',
-            enum: ['admin', 'guru', 'wali_kelas', 'alumni'],
-            example: 'admin',
-            description: 'Role pengguna (setiap user hanya boleh punya 1 role)'
-        ),
-        new OA\Property(
-            property: 'subject',
-            type: 'integer',
-            nullable: true,
-            example: 1,
-            description: 'ID mata pelajaran (hanya untuk role guru)'
-        ),
-        new OA\Property(
-            property: 'class',
-            type: 'string',
-            nullable: true,
-            example: 'X-1',
-            description: 'Kode kelas (hanya untuk role wali_kelas)'
-        ),
-        new OA\Property(
-            property: 'alumni',
-            type: 'string',
-            nullable: true,
-            example: 'A001',
-            description: 'NIM alumni (hanya untuk role alumni)'
-        ),
-        new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),
-        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time')
-    ]
-)]
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;

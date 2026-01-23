@@ -41,7 +41,3 @@ Route::middleware('auth:sanctum')->group(function () {
     // Hanya user dengan role 'admin' dan 'alumni' yang bisa mengakses
     Route::middleware(['role:admin', 'role:alumni'])->name('alumni.')->group(function () {});
 });
-
-Route::fallback(function () {
-    return redirect('/api/documentation');
-});
