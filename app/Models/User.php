@@ -106,19 +106,30 @@ class User extends Authenticatable
 
     /**
      * Relasi ke Subject (untuk role guru)
-     * Teacher hanya bisa mengajar SATU mata pelajaran
+     * Guru hanya bisa mengajar SATU mata pelajaran
      */
-    // public function subjectRelation()
-    // {
-    //     return $this->belongsTo(Subject::class, 'subject');
-    // }
+    public function subjectRelation()
+    {
+        return $this->belongsTo(Subject::class, 'subject');
+    }
 
     /**
- * Relasi ke Alumni (untuk role alumni)
- * Alumni dihubungkan via nim
- */
-    // public function alumniRelation()
-    // {
-    //     return $this->belongsTo(Alumni::class, 'alumni', 'nim');
-    // }
+     * Relasi ke Alumni (untuk role alumni)
+     * Alumni dihubungkan via nim
+     */
+    public function alumniRelation()
+    {
+        return $this->belongsTo(Alumni::class, 'alumni', 'nim');
+    }
+
+    /**
+     * Relasi ke Students (untuk role wali_kelas)
+     * Wali kelas bisa akses semua siswa di kelasnya
+     * Format class: X-1, XI-2, XII-3, dll
+     */
+    public function students()
+    {
+        return $this->hasMany(Student::class, 'rombel_absen', 'class')
+            ->where('rombel_absen', 'LIKE', $this->class . '-%');
+    }
 }
