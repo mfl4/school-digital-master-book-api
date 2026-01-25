@@ -6,6 +6,8 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AlumniController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\GradeController;
+use App\Http\Controllers\GradeSummaryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,9 +24,17 @@ Route::post('/login', [AuthController::class, 'login'])
 
 // --- Pencarian Data Publik (Berdasarkan NIS/NIM/NIA) ---
 Route::prefix('public')->name('public.')->group(function () {
+    // List semua siswa (dengan optional filter)
+    Route::get('/students', [StudentController::class, 'publicIndex'])
+        ->name('students.index');
+
     // Pencarian siswa berdasarkan NIS/NISN
     Route::get('/students/search', [StudentController::class, 'publicSearch'])
         ->name('students.search');
+
+    // List semua alumni (dengan optional filter)
+    Route::get('/alumni', [AlumniController::class, 'publicIndex'])
+        ->name('alumni.index');
 
     // Pencarian alumni berdasarkan NIM
     Route::get('/alumni/search', [AlumniController::class, 'publicSearch'])
@@ -83,13 +93,28 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('alumni/{alumnus}', [AlumniController::class, 'show'])->name('alumni.show');
         Route::patch('alumni/{alumnus}', [AlumniController::class, 'update'])->name('alumni.update');
         Route::delete('alumni/{alumnus}', [AlumniController::class, 'destroy'])->name('alumni.destroy');
+
+        // Grades CRUD (Admin bisa akses semua grades)
+        Route::get('grades', [GradeController::class, 'index'])->name('grades.index');
+        Route::post('grades', [GradeController::class, 'store'])->name('grades.store');
+        Route::get('grades/{grade}', [GradeController::class, 'show'])->name('grades.show');
+        Route::patch('grades/{grade}', [GradeController::class, 'update'])->name('grades.update');
+        Route::delete('grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
+
+        // Grade Summaries (Read-only untuk admin)
+        Route::get('grade-summaries', [GradeSummaryController::class, 'index'])->name('grade-summaries.index');
+        Route::get('grade-summaries/{student}/{semester}', [GradeSummaryController::class, 'show'])->name('grade-summaries.show');
     });
 
     // ========================================================================
     // GURU ROUTES - Hanya user dengan role 'guru'
     // ========================================================================
     Route::middleware('role:guru')->name('guru.')->group(function () {
-        // Route untuk guru akan ditambahkan di sini (input nilai, dll)
+        // Guru hanya bisa CRUD nilai untuk mapel yang diampu
+        Route::get('my-grades', [GradeController::class, 'myGrades'])->name('my-grades.index');
+        Route::post('my-grades', [GradeController::class, 'storeMyGrade'])->name('my-grades.store');
+        Route::patch('my-grades/{grade}', [GradeController::class, 'updateMyGrade'])->name('my-grades.update');
+        Route::delete('my-grades/{grade}', [GradeController::class, 'destroyMyGrade'])->name('my-grades.destroy');
     });
 
     // ========================================================================
@@ -100,6 +125,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('wali/students', [StudentController::class, 'index'])->name('students.index');
         Route::get('wali/students/{student}', [StudentController::class, 'show'])->name('students.show');
         Route::patch('wali/students/{student}', [StudentController::class, 'update'])->name('students.update');
+
+        // Wali kelas bisa akses semua grades siswa di kelasnya
+        Route::get('wali/grades', [GradeController::class, 'classGrades'])->name('grades.index');
+        Route::post('wali/grades', [GradeController::class, 'storeClassGrade'])->name('grades.store');
+
+        // Wali kelas bisa lihat summaries siswa di kelasnya
+        Route::get('wali/grade-summaries', [GradeSummaryController::class, 'classSummaries'])->name('summaries.index');
+        Route::get('wali/grade-summaries/{student}/{semester}', [GradeSummaryController::class, 'show'])->name('summaries.show');
     });
 
     // ========================================================================
