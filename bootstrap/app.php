@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\HandleCors;
 
 /**
  * Bootstrap aplikasi Laravel
@@ -15,7 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-
+        // Tambahkan HandleCors ke global middleware untuk menangani CORS
+        $middleware->use([
+            HandleCors::class,
+        ]);
         
         // Registrasi middleware alias
         $middleware->alias([
