@@ -55,6 +55,10 @@ class AuthController extends Controller
         $tokenName = 'auth_token_' . $user->id . '_' . now()->timestamp;
         $token = $user->createToken($tokenName)->plainTextToken;
 
+        // Load relasi berdasarkan role untuk frontend
+        // Guru membutuhkan subject.name, Alumni membutuhkan data alumni
+        $user->load('subjectRelation', 'alumniRelation');
+
         return response()->json([
             'success' => true,
             'message' => 'Login berhasil',
@@ -65,9 +69,9 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
-                'subject' => $user->subject,
+                'subject' => $user->subjectRelation,  // Object dengan name
                 'class' => $user->class,
-                'alumni' => $user->alumni,
+                'alumni' => $user->alumniRelation,    // Object dengan data lengkap
             ]
         ]);
     }
@@ -101,9 +105,22 @@ class AuthController extends Controller
 
     public function currentUser(Request $request): JsonResponse
     {
+        $user = $request->user();
+        
+        // Load relasi untuk konsistensi dengan login response
+        $user->load('subjectRelation', 'alumniRelation');
+        
         return response()->json([
             'message' => 'Data user berhasil diambil',
-            'data' => $request->user()
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'subject' => $user->subjectRelation,  // Object dengan name
+                'class' => $user->class,
+                'alumni' => $user->alumniRelation,    // Object dengan data lengkap
+            ]
         ]);
     }
 }
