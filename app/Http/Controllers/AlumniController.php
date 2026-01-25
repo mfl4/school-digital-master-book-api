@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * AlumniController
- * 
+ *
  * Controller untuk mengelola data alumni (CRUD).
  * Admin: Full CRUD access
  * Alumni: Hanya bisa update data pribadi sendiri
@@ -19,9 +19,9 @@ class AlumniController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * 
+     *
      * GET /api/alumni
-     * 
+     *
      * Query Parameters:
      * - search: Cari berdasarkan NIM, nama, atau email
      * - graduation_year: Filter berdasarkan tahun kelulusan
@@ -65,7 +65,7 @@ class AlumniController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * 
+     *
      * POST /api/alumni
      */
     public function store(Request $request)
@@ -73,7 +73,7 @@ class AlumniController extends Controller
         $validated = $request->validate([
             'nim' => 'required|string|max:20|unique:alumni,nim',
             'name' => 'required|string|max:100',
-            'graduation_year' => 'required|integer|min:1900|max:' . (date('Y') + 1),
+            'graduation_year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
             'university' => 'nullable|string|max:100',
             'job_title' => 'nullable|string|max:100',
             'job_start' => 'nullable|date|required_with:job_title',
@@ -103,7 +103,7 @@ class AlumniController extends Controller
 
     /**
      * Display the specified resource.
-     * 
+     *
      * GET /api/alumni/{nim}
      */
     public function show(Request $request, string $nim)
@@ -127,7 +127,7 @@ class AlumniController extends Controller
 
     /**
      * Update the specified resource in storage.
-     * 
+     *
      * PUT /api/alumni/{nim}
      */
     public function update(Request $request, string $nim)
@@ -145,7 +145,7 @@ class AlumniController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:100',
-            'graduation_year' => 'sometimes|integer|min:1900|max:' . (date('Y') + 1),
+            'graduation_year' => 'sometimes|integer|min:1900|max:'.(date('Y') + 1),
             'university' => 'nullable|string|max:100',
             'job_title' => 'nullable|string|max:100',
             'job_start' => 'nullable|date',
@@ -182,7 +182,7 @@ class AlumniController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     * 
+     *
      * DELETE /api/alumni/{nim}
      */
     public function destroy(Request $request, string $nim)
@@ -190,7 +190,7 @@ class AlumniController extends Controller
         $alumni = Alumni::findOrFail($nim);
 
         // Hanya admin yang bisa hapus
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             return response()->json([
                 'message' => 'Hanya admin yang dapat menghapus data alumni.',
             ], Response::HTTP_FORBIDDEN);
@@ -208,10 +208,57 @@ class AlumniController extends Controller
     // =========================================================================
 
     /**
-     * Pencarian data alumni untuk publik
-     * 
+     * List semua alumni untuk publik (dengan optional search)
+     *
+     * GET /api/public/alumni
+     *
+     * Query Parameters:
+     * - search: Optional - Cari berdasarkan NIM atau nama (minimal 2 karakter)
+     * - graduation_year: Optional - Filter berdasarkan tahun kelulusan
+     * - per_page: Jumlah data per halaman (default: 20)
+     */
+    public function publicIndex(Request $request)
+    {
+        $query = Alumni::query();
+
+        // Optional search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('nim', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+
+        // Optional graduation year filter
+        if ($request->filled('graduation_year')) {
+            $query->byGraduationYear($request->input('graduation_year'));
+        }
+
+        // Order by graduation year desc, then name
+        $query->orderBy('graduation_year', 'desc')->orderBy('name');
+
+        // Pagination
+        $perPage = $request->input('per_page', 20);
+        $alumni = $query->paginate($perPage);
+
+        // Transform to public data
+        $alumni->getCollection()->transform(function ($alumnus) {
+            return $this->getPublicAlumniData($alumnus);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data alumni berhasil diambil.',
+            'data' => $alumni,
+        ], Response::HTTP_OK);
+    }
+
+    /**
+     * Pencarian langsung ke detail alumni berdasarkan NIM
+     *
      * GET /api/public/alumni/search
-     * 
+     *
      * Query Parameters:
      * - q: NIM yang dicari (required, minimal 3 karakter)
      */
@@ -226,8 +273,9 @@ class AlumniController extends Controller
         /** @var Alumni|null $alumni */
         $alumni = Alumni::where('nim', $query)->first();
 
-        if (!$alumni) {
+        if (! $alumni) {
             return response()->json([
+                'success' => false,
                 'message' => 'Data alumni tidak ditemukan.',
                 'data' => null,
             ], Response::HTTP_NOT_FOUND);
@@ -235,6 +283,7 @@ class AlumniController extends Controller
 
         // Hanya tampilkan data publik (terbatas)
         return response()->json([
+            'success' => true,
             'message' => 'Data alumni ditemukan.',
             'data' => $this->getPublicAlumniData($alumni),
         ], Response::HTTP_OK);
@@ -242,7 +291,7 @@ class AlumniController extends Controller
 
     /**
      * Menampilkan detail alumni untuk publik (data terbatas)
-     * 
+     *
      * GET /api/public/alumni/{nim}
      */
     public function publicShow(string $nim)
@@ -250,7 +299,7 @@ class AlumniController extends Controller
         /** @var Alumni|null $alumni */
         $alumni = Alumni::find($nim);
 
-        if (!$alumni) {
+        if (! $alumni) {
             return response()->json([
                 'message' => 'Data alumni tidak ditemukan.',
                 'data' => null,
@@ -265,14 +314,14 @@ class AlumniController extends Controller
 
     /**
      * Menampilkan profil alumni yang sedang login
-     * 
+     *
      * GET /api/my-profile
      */
     public function myProfile(Request $request)
     {
         $nim = $request->user()->alumni;
 
-        if (!$nim) {
+        if (! $nim) {
             return response()->json([
                 'message' => 'Akun Anda tidak terhubung dengan data alumni.',
             ], Response::HTTP_NOT_FOUND);
@@ -280,7 +329,7 @@ class AlumniController extends Controller
 
         $alumni = Alumni::with(['student', 'updater'])->find($nim);
 
-        if (!$alumni) {
+        if (! $alumni) {
             return response()->json([
                 'message' => 'Data alumni tidak ditemukan.',
             ], Response::HTTP_NOT_FOUND);
@@ -291,14 +340,14 @@ class AlumniController extends Controller
 
     /**
      * Update profil alumni yang sedang login
-     * 
+     *
      * PATCH /api/my-profile
      */
     public function updateMyProfile(Request $request)
     {
         $nim = $request->user()->alumni;
 
-        if (!$nim) {
+        if (! $nim) {
             return response()->json([
                 'message' => 'Akun Anda tidak terhubung dengan data alumni.',
             ], Response::HTTP_NOT_FOUND);
@@ -357,7 +406,7 @@ class AlumniController extends Controller
     protected function createNotificationForAdmin(Alumni $alumni, $user, string $ip): void
     {
         // Cek apakah model Notification ada
-        if (!class_exists(Notification::class)) {
+        if (! class_exists(Notification::class)) {
             // Log atau skip jika model belum ada
             return;
         }
@@ -372,7 +421,7 @@ class AlumniController extends Controller
             ]);
         } catch (\Exception $e) {
             // Log error tapi jangan gagalkan proses
-            Log::warning('Gagal membuat notifikasi: ' . $e->getMessage());
+            Log::warning('Gagal membuat notifikasi: '.$e->getMessage());
         }
     }
 }
