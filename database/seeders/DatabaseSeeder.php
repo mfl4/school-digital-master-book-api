@@ -32,6 +32,10 @@ class DatabaseSeeder extends Seeder
 
             // 4. Alumni membutuhkan students (nis) dan user (updated_by)
             AlumniSeeder::class,
+
+            // 5. Grades membutuhkan students, subjects, dan users
+            // Grade summaries akan auto-created oleh GradeObserver
+            GradeSeeder::class,
         ]);
     }
 }
