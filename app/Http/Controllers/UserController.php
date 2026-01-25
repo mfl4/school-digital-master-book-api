@@ -43,6 +43,9 @@ class UserController extends Controller
             $query->where('role', $request->role);
         }
 
+        // Load relasi untuk ditampilkan di frontend
+        $query->with(['subjectRelation', 'alumniRelation']);
+
         // Order by name
         $query->orderBy('name');
 
@@ -77,6 +80,9 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
 
         $user = User::create($validated);
+        
+        // Load relasi setelah create
+        $user->load(['subjectRelation', 'alumniRelation']);
 
         return response()->json([
             'message' => 'User berhasil ditambahkan.',
@@ -91,6 +97,9 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        // Load relasi untuk detail user
+        $user->load(['subjectRelation', 'alumniRelation']);
+        
         return response()->json($user, Response::HTTP_OK);
     }
 
@@ -122,10 +131,13 @@ class UserController extends Controller
         }
 
         $user->update($validated);
+        
+        // Refresh dan load relasi
+        $user = $user->fresh(['subjectRelation', 'alumniRelation']);
 
         return response()->json([
             'message' => 'User berhasil diperbarui.',
-            'data' => $user->fresh(),
+            'data' => $user,
         ], Response::HTTP_OK);
     }
 
