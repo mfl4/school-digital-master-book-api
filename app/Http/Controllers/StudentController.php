@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * StudentController
- * 
+ *
  * Controller untuk mengelola data siswa (CRUD).
  * Hanya dapat diakses oleh Admin dan Wali Kelas.
  */
@@ -16,9 +16,9 @@ class StudentController extends Controller
 {
     /**
      * Display a listing of the resource.
-     * 
+     *
      * GET /api/students
-     * 
+     *
      * Query Parameters:
      * - search: Cari berdasarkan NIS, NISN, atau nama
      * - class: Filter berdasarkan kelas (contoh: X-1)
@@ -61,7 +61,7 @@ class StudentController extends Controller
 
     /**
      * Store a newly created resource in storage.
-     * 
+     *
      * POST /api/students
      */
     public function store(Request $request)
@@ -73,7 +73,7 @@ class StudentController extends Controller
             'gender' => 'required|in:L,P',
             'birth_place' => 'required|string|max:50',
             'birth_date' => 'required|date',
-            'religion' => 'required|in:' . implode(',', Student::RELIGIONS),
+            'religion' => 'required|in:'.implode(',', Student::RELIGIONS),
             'father_name' => 'required|string|max:100',
             'address' => 'required|string',
             'ijazah_number' => 'nullable|string|max:50',
@@ -95,7 +95,7 @@ class StudentController extends Controller
 
     /**
      * Display the specified resource.
-     * 
+     *
      * GET /api/students/{nis}
      */
     public function show(Request $request, string $nis)
@@ -119,7 +119,7 @@ class StudentController extends Controller
 
     /**
      * Update the specified resource in storage.
-     * 
+     *
      * PUT /api/students/{nis}
      */
     public function update(Request $request, string $nis)
@@ -136,12 +136,12 @@ class StudentController extends Controller
         }
 
         $validated = $request->validate([
-            'nisn' => 'sometimes|string|max:20|unique:students,nisn,' . $nis . ',nis',
+            'nisn' => 'sometimes|string|max:20|unique:students,nisn,'.$nis.',nis',
             'name' => 'sometimes|string|max:100',
             'gender' => 'sometimes|in:L,P',
             'birth_place' => 'sometimes|string|max:50',
             'birth_date' => 'sometimes|date',
-            'religion' => 'sometimes|in:' . implode(',', Student::RELIGIONS),
+            'religion' => 'sometimes|in:'.implode(',', Student::RELIGIONS),
             'father_name' => 'sometimes|string|max:100',
             'address' => 'sometimes|string',
             'ijazah_number' => 'nullable|string|max:50',
@@ -163,7 +163,7 @@ class StudentController extends Controller
 
     /**
      * Remove the specified resource from storage.
-     * 
+     *
      * DELETE /api/students/{nis}
      */
     public function destroy(Request $request, string $nis)
@@ -171,7 +171,7 @@ class StudentController extends Controller
         $student = Student::findOrFail($nis);
 
         // Hanya admin yang bisa hapus
-        if (!$request->user()->isAdmin()) {
+        if (! $request->user()->isAdmin()) {
             return response()->json([
                 'message' => 'Hanya admin yang dapat menghapus data siswa.',
             ], Response::HTTP_FORBIDDEN);
@@ -189,10 +189,58 @@ class StudentController extends Controller
     // =========================================================================
 
     /**
-     * Pencarian data siswa untuk publik
-     * 
+     * List semua siswa untuk publik (dengan optional search)
+     *
+     * GET /api/public/students
+     *
+     * Query Parameters:
+     * - search: Optional - Cari berdasarkan NIS, NISN, atau nama (minimal 2 karakter)
+     * - class: Optional - Filter berdasarkan kelas (contoh: X-1)
+     * - per_page: Jumlah data per halaman (default: 20)
+     */
+    public function publicIndex(Request $request)
+    {
+        $query = Student::query();
+
+        // Optional search filter
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('nis', 'like', "%{$search}%")
+                    ->orWhere('nisn', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+
+        // Optional class filter
+        if ($request->filled('class')) {
+            $query->byClass($request->input('class'));
+        }
+
+        // Order by class dan name
+        $query->orderBy('rombel_absen')->orderBy('name');
+
+        // Pagination
+        $perPage = $request->input('per_page', 20);
+        $students = $query->paginate($perPage);
+
+        // Transform to public data
+        $students->getCollection()->transform(function ($student) {
+            return $this->getPublicStudentData($student);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data siswa berhasil diambil.',
+            'data' => $students,
+        ], Response::HTTP_OK);
+    }
+
+    /**
+     * Pencarian langsung ke detail siswa berdasarkan NIS/NISN
+     *
      * GET /api/public/students/search
-     * 
+     *
      * Query Parameters:
      * - q: NIS atau NISN yang dicari (required, minimal 3 karakter)
      */
@@ -209,8 +257,9 @@ class StudentController extends Controller
             ->orWhere('nisn', $query)
             ->first();
 
-        if (!$student) {
+        if (! $student) {
             return response()->json([
+                'success' => false,
                 'message' => 'Data siswa tidak ditemukan.',
                 'data' => null,
             ], Response::HTTP_NOT_FOUND);
@@ -218,6 +267,7 @@ class StudentController extends Controller
 
         // Hanya tampilkan data publik (terbatas)
         return response()->json([
+            'success' => true,
             'message' => 'Data siswa ditemukan.',
             'data' => $this->getPublicStudentData($student),
         ], Response::HTTP_OK);
@@ -225,7 +275,7 @@ class StudentController extends Controller
 
     /**
      * Menampilkan detail siswa untuk publik (data terbatas)
-     * 
+     *
      * GET /api/public/students/{nis}
      */
     public function publicShow(string $nis)
@@ -233,7 +283,7 @@ class StudentController extends Controller
         /** @var Student|null $student */
         $student = Student::find($nis);
 
-        if (!$student) {
+        if (! $student) {
             return response()->json([
                 'message' => 'Data siswa tidak ditemukan.',
                 'data' => null,
