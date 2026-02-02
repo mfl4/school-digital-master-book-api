@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('subjects', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
+            $table->string('code', 10)->nullable(); // Code untuk mata pelajaran (MTK, BING, etc)
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });

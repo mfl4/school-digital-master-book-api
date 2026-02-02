@@ -9,31 +9,31 @@ use Illuminate\Database\Seeder;
 /**
  * SubjectSeeder
  * 
- * Membuat data mata pelajaran contoh untuk sekolah.
- * Semua mata pelajaran dibuat oleh admin.
+ * Membuat data mata pelajaran untuk sekolah.
+ * Includes subject codes untuk better organization.
  */
 class SubjectSeeder extends Seeder
 {
     /**
-     * Daftar mata pelajaran yang akan dibuat
+     * Daftar mata pelajaran dengan kode
      */
     protected array $subjects = [
-        'Matematika',
-        'Bahasa Indonesia',
-        'Bahasa Inggris',
-        'Fisika',
-        'Kimia',
-        'Biologi',
-        'Sejarah',
-        'Geografi',
-        'Ekonomi',
-        'Sosiologi',
-        'Pendidikan Agama Islam',
-        'Pendidikan Kewarganegaraan',
-        'Seni Budaya',
-        'Pendidikan Jasmani',
-        'Prakarya dan Kewirausahaan',
-        'Informatika',
+        ['name' => 'Matematika', 'code' => 'MTK'],
+        ['name' => 'Bahasa Indonesia', 'code' => 'BIND'],
+        ['name' => 'Bahasa Inggris', 'code' => 'BING'],
+        ['name' => 'Fisika', 'code' => 'FIS'],
+        ['name' => 'Kimia', 'code' => 'KIM'],
+        ['name' => 'Biologi', 'code' => 'BIO'],
+        ['name' => 'Sejarah', 'code' => 'SEJ'],
+        ['name' => 'Geografi', 'code' => 'GEO'],
+        ['name' => 'Ekonomi', 'code' => 'EKO'],
+        ['name' => 'Sosiologi', 'code' => 'SOS'],
+        ['name' => 'Pendidikan Agama Islam', 'code' => 'PAI'],
+        ['name' => 'Pendidikan Kewarganegaraan', 'code' => 'PKN'],
+        ['name' => 'Seni Budaya', 'code' => 'SBD'],
+        ['name' => 'Pendidikan Jasmani', 'code' => 'PJOK'],
+        ['name' => 'Prakarya dan Kewirausahaan', 'code' => 'PKWU'],
+        ['name' => 'Informatika', 'code' => 'INF'],
     ];
 
     /**
@@ -49,13 +49,32 @@ class SubjectSeeder extends Seeder
             return;
         }
 
-        foreach ($this->subjects as $subjectName) {
-            Subject::firstOrCreate(
-                ['name' => $subjectName],
-                ['created_by' => $admin->id]
+        $created = 0;
+        $existing = 0;
+
+        foreach ($this->subjects as $subjectData) {
+            $subject = Subject::firstOrCreate(
+                ['name' => $subjectData['name']],
+                [
+                    'code' => $subjectData['code'],
+                    'created_by' => $admin->id,
+                ]
             );
+
+            if ($subject->wasRecentlyCreated) {
+                $created++;
+            } else {
+                // Update code if it doesn't exist
+                if (!$subject->code) {
+                    $subject->update(['code' => $subjectData['code']]);
+                }
+                $existing++;
+            }
         }
 
-        $this->command->info('Berhasil membuat ' . count($this->subjects) . ' mata pelajaran.');
+        $this->command->info("✓ Subjects processed:");
+        $this->command->info("  - Created: {$created}");
+        $this->command->info("  - Existing: {$existing}");
+        $this->command->info("  - Total: " . count($this->subjects));
     }
 }
