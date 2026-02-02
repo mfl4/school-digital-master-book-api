@@ -8,6 +8,7 @@ use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GradeSummaryController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,6 +64,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('auth.current-user');
 
     // ========================================================================
+    // SHARED ROUTES - Diakses oleh beberapa role
+    // ========================================================================
+
+    // List siswa dan alumni bisa diakses Admin, Guru, dan Wali Kelas
+    Route::middleware('role:admin|guru|wali_kelas')->group(function () {
+        Route::get('students', [StudentController::class, 'index'])->name('students.index');
+        Route::get('alumni', [AlumniController::class, 'index'])->name('alumni.index');
+    });
+
+    // ========================================================================
     // ADMIN ROUTES - Hanya user dengan role 'admin' yang bisa mengakses
     // ========================================================================
     Route::middleware('role:admin')->name('admin.')->group(function () {
@@ -80,30 +91,39 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
-        // Students CRUD (Full Access)
-        Route::get('students', [StudentController::class, 'index'])->name('students.index');
+        // CRUD Siswa (Kecuali Index)
         Route::post('students', [StudentController::class, 'store'])->name('students.store');
         Route::get('students/{student}', [StudentController::class, 'show'])->name('students.show');
         Route::patch('students/{student}', [StudentController::class, 'update'])->name('students.update');
         Route::delete('students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
 
-        // Alumni CRUD (Full Access)
-        Route::get('alumni', [AlumniController::class, 'index'])->name('alumni.index');
+
+        // CRUD Alumni (Akses Penuh)
         Route::post('alumni', [AlumniController::class, 'store'])->name('alumni.store');
         Route::get('alumni/{alumnus}', [AlumniController::class, 'show'])->name('alumni.show');
         Route::patch('alumni/{alumnus}', [AlumniController::class, 'update'])->name('alumni.update');
         Route::delete('alumni/{alumnus}', [AlumniController::class, 'destroy'])->name('alumni.destroy');
 
-        // Grades CRUD (Admin bisa akses semua grades)
+        // CRUD Nilai (Admin bisa akses semua nilai)
         Route::get('grades', [GradeController::class, 'index'])->name('grades.index');
         Route::post('grades', [GradeController::class, 'store'])->name('grades.store');
         Route::get('grades/{grade}', [GradeController::class, 'show'])->name('grades.show');
         Route::patch('grades/{grade}', [GradeController::class, 'update'])->name('grades.update');
         Route::delete('grades/{grade}', [GradeController::class, 'destroy'])->name('grades.destroy');
 
-        // Grade Summaries (Read-only untuk admin)
+        // Ringkasan Nilai (Read-only untuk admin)
         Route::get('grade-summaries', [GradeSummaryController::class, 'index'])->name('grade-summaries.index');
-        Route::get('grade-summaries/{student}/{semester}', [GradeSummaryController::class, 'show'])->name('grade-summaries.show');
+        Route::get('grade-summaries/{student}/{semester}', [GradeSummaryController::class, 'show'])
+            ->name('grade-summaries.show')
+            ->where('semester', '.*');
+
+        // Notifikasi (Khusus Admin - untuk monitor perubahan data alumni)
+        Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+        Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+        Route::get('notifications/{notification}', [NotificationController::class, 'show'])->name('notifications.show');
+        Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+        Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+        Route::delete('notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     });
 
     // ========================================================================
@@ -129,6 +149,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Wali kelas bisa akses semua grades siswa di kelasnya
         Route::get('wali/grades', [GradeController::class, 'classGrades'])->name('grades.index');
         Route::post('wali/grades', [GradeController::class, 'storeClassGrade'])->name('grades.store');
+        Route::patch('wali/grades/{grade}', [GradeController::class, 'updateClassGrade'])->name('grades.update');
+        Route::delete('wali/grades/{grade}', [GradeController::class, 'destroyClassGrade'])->name('grades.destroy');
+
+        // Wali kelas bisa akses subjects (untuk dropdown nilai)
+        Route::get('wali/subjects', [SubjectController::class, 'index'])->name('subjects.index');
 
         // Wali kelas bisa lihat summaries siswa di kelasnya
         Route::get('wali/grade-summaries', [GradeSummaryController::class, 'classSummaries'])->name('summaries.index');

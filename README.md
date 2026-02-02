@@ -1,59 +1,128 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# School Digital Master Book API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistem informasi buku induk sekolah digital yang terpusat, modular, dan modern. API ini dibangun menggunakan Laravel 12 dan PHP 8.4 sebagai backend utama untuk mengelola data siswa, alumni, nilai, dan pengguna.
 
-## About Laravel
+## 🚀 Teknologi
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Framework:** Laravel 12
+- **Language:** PHP 8.4
+- **Database:** PostgreSQL 17.7
+- **Auth:** Laravel Sanctum
+- **Tools:** Composer, Artisan
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🛠 Instalasi & Setup
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Pastikan Anda telah menginstal PHP 8.4+, Composer, dan PostgreSQL.
 
-## Learning Laravel
+1. **Clone Repository**
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+    ```bash
+    git clone <repository-url>
+    cd school-digital-master-book-api
+    ```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. **Install Dependencies**
 
-## Laravel Sponsors
+    ```bash
+    composer install
+    ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. **Konfigurasi Environment**
+   Salin file `.env.example` ke `.env` dan sesuaikan konfigurasi database.
 
-### Premium Partners
+    ```bash
+    copy .env.example .env
+    ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+    Atur koneksi DB di `.env`:
 
-## Contributing
+    ```env
+    DB_CONNECTION=pgsql
+    DB_HOST=127.0.0.1
+    DB_PORT=5432
+    DB_DATABASE=db_sekolah
+    DB_USERNAME=postgres
+    DB_PASSWORD=secret
+    ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+4. **Generate Application Key**
 
-## Code of Conduct
+    ```bash
+    php artisan key:generate
+    ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+5. **Migrasi & Seeding Database**
 
-## Security Vulnerabilities
+    > **Penting**: Seeding sangat diperlukan agar role dan user default (Admin, Guru, dll) tersedia.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+    ```bash
+    php artisan migrate:fresh --seed
+    ```
 
-## License
+6. **Jalankan Server**
+    ```bash
+    php artisan serve
+    ```
+    API akan berjalan di `http://localhost:8000`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 📚 Dokumentasi API
+
+### Autentikasi
+
+- `POST /api/login` - Login user (email & password)
+- `POST /api/logout` - Logout (Wajib Header: `Authorization: Bearer <token>`)
+- `GET /api/current-user` - Cek user yang sedang login
+
+### Role: Public (Tanpa Login)
+
+- `GET /api/public/students` - Pencarian siswa (Filter: NIS/NISN)
+- `GET /api/public/alumni` - Pencarian alumni (Filter: NIM)
+- `GET /api/public/students/{nis}` - Detail siswa terbatas
+- `GET /api/public/alumni/{nim}` - Detail alumni terbatas
+
+### Role: Admin (Akses Penuh)
+
+Semua route di bawah `admin.*`:
+
+- **Subjects:** CRUD Mata Pelajaran (`/api/admin/subjects`)
+- **Users:** Manajemen User, Role, & Subject Assignment (`/api/admin/users`)
+- **Students:** CRUD Data Siswa Lengkap (`/api/admin/students`)
+- **Alumni:** CRUD Data Alumni Lengkap (`/api/admin/alumni`)
+- **Grades:** Kelola seluruh data nilai siswa (`/api/admin/grades`)
+- **Grade Summaries:** Lihat total & rata-rata nilai (`/api/admin/grade-summaries`)
+- **Notifications:** Notifikasi update data dari Alumni (`/api/admin/notifications`)
+
+### Role: Guru
+
+Semua route di bawah `guru.*`:
+
+- `GET /api/guru/my-grades` - Lihat nilai mapel yang diampu sendiri.
+- `POST /api/guru/my-grades` - Input nilai siswa untuk mapel sendiri.
+- `PATCH /api/guru/my-grades/{grade}` - Update nilai.
+
+### Role: Wali Kelas
+
+Semua route di bawah `wali_kelas.*`:
+
+- `GET /api/wali_kelas/wali/students` - Lihat daftar siswa di kelas binaan.
+- `GET /api/wali_kelas/wali/grades` - Input nilai semua mapel untuk kelas binaan.
+- `GET /api/wali_kelas/wali/grade-summaries` - Rekapitulasi nilai (Total & Rata-rata) per semester.
+
+### Role: Alumni
+
+Semua route di bawah `alumni.*`:
+
+- `GET /api/alumni/my-profile` - Lihat profil diri sendiri.
+- `PATCH /api/alumni/my-profile` - Update data karir/kontak (Memicu notifikasi ke Admin).
+
+## 📄 Struktur Folder Penting
+
+- `app/Http/Controllers`: Berisi logika untuk `StudentController`, `GradeController`, `AuthController`, dll.
+- `app/Models`: Model Eloquent (`Student`, `Alumni`, `Grade`, `User`, `Subject`).
+- `routes/api.php`: Definisi seluruh endpoint API dan grouping middleware.
+- `database/migrations`: Struktur tabel database.
+- `database/seeders`: Data dummy untuk testing.
+
+## 📜 Lisensi
+
+Hak cipta milik pengembang. Tidak untuk didistribusikan secara publik tanpa izin.
