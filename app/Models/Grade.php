@@ -5,19 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Grade Model (Nilai Raport)
- * 
- * Menyimpan nilai siswa per mata pelajaran per semester.
- * Observer: GradeObserver untuk auto-update grade_summary
- */
+// Model Grade (Nilai Raport) - nilai siswa per mapel per semester
 class Grade extends Model
 {
     use HasFactory;
 
-    /**
-     * Grade letter constants
-     */
+    // Konstanta grade letter (A, B, C, D, E)
     public const GRADE_LETTERS = [
         'A' => [90, 100],
         'B' => [80, 89],
@@ -26,14 +19,10 @@ class Grade extends Model
         'E' => [0, 59],
     ];
 
-    /**
-     * Passing score constant
-     */
+    // Konstanta passing score (nilai lulus >= 75)
     public const PASSING_SCORE = 75;
 
-    /**
-     * Atribut yang boleh diisi secara mass assignment
-     */
+    // Field yang boleh diisi secara mass assignment
     protected $fillable = [
         'student_id',
         'subject_id',
@@ -44,9 +33,7 @@ class Grade extends Model
         'last_edited_at',
     ];
 
-    /**
-     * Casting atribut ke tipe data tertentu
-     */
+    // Casting atribut ke tipe data tertentu
     protected function casts(): array
     {
         return [
@@ -55,41 +42,29 @@ class Grade extends Model
         ];
     }
 
-    // =========================================================================
-    // RELATIONSHIPS
-    // =========================================================================
+    // === RELATIONSHIPS ===
 
-    /**
-     * Relasi ke Student
-     */
+    // Relasi ke Student
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id', 'nis');
     }
 
-    /**
-     * Relasi ke Subject
-     */
+    // Relasi ke Subject
     public function subject()
     {
         return $this->belongsTo(Subject::class, 'subject_id');
     }
 
-    /**
-     * Relasi ke User yang terakhir mengedit
-     */
+    // Relasi ke User yang terakhir mengedit
     public function lastEditor()
     {
         return $this->belongsTo(User::class, 'last_edited_by');
     }
 
-    // =========================================================================
-    // ACCESSORS
-    // =========================================================================
+    // === ACCESSORS ===
 
-    /**
-     * Get grade letter (A/B/C/D/E) berdasarkan score
-     */
+    // Get grade letter (A/B/C/D/E) berdasarkan score
     public function getGradeLetterAttribute(): string
     {
         foreach (self::GRADE_LETTERS as $letter => $range) {
@@ -100,55 +75,40 @@ class Grade extends Model
         return 'E'; // Default jika tidak match
     }
 
-    /**
-     * Cek apakah nilai ini lulus (>= 75)
-     */
+    // Cek apakah nilai ini lulus (>= 75)
     public function getIsPassingAttribute(): bool
     {
         return $this->score >= self::PASSING_SCORE;
     }
 
-    // =========================================================================
-    // SCOPES
-    // =========================================================================
+    // === SCOPES ===
 
-    /**
-     * Scope untuk filter berdasarkan semester
-     */
+    // Filter berdasarkan semester
     public function scopeBySemester($query, string $semester)
     {
         return $query->where('semester', $semester);
     }
 
-    /**
-     * Scope untuk filter berdasarkan student
-     */
+    // Filter berdasarkan student
     public function scopeByStudent($query, string $nis)
     {
         return $query->where('student_id', $nis);
     }
 
-    /**
-     * Scope untuk filter berdasarkan subject
-     */
+    // Filter berdasarkan subject
     public function scopeBySubject($query, int $subjectId)
     {
         return $query->where('subject_id', $subjectId);
     }
 
-    /**
-     * Scope untuk filter berdasarkan student dan semester
-     */
+    // Filter berdasarkan student dan semester
     public function scopeByStudentAndSemester($query, string $nis, string $semester)
     {
         return $query->where('student_id', $nis)
             ->where('semester', $semester);
     }
 
-    /**
-     * Scope untuk filter berdasarkan kelas (dari rombel_absen siswa)
-     * Contoh: X-1, XI-2, XII-3
-     */
+    // Filter berdasarkan kelas (dari rombel_absen siswa)
     public function scopeByClass($query, string $class)
     {
         return $query->whereHas('student', function ($q) use ($class) {

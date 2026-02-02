@@ -7,15 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-/**
- * User Model
- * 
- * Role yang tersedia:
- * - admin: Akses penuh ke semua fitur
- * - guru: Guru mata pelajaran, hanya bisa input nilai mapel yang diampu
- * - wali_kelas: Wali kelas, bisa akses semua data siswa di kelasnya
- * - alumni: Alumni, bisa update data pribadi
- */
+// Model User dengan berbagai role: admin, guru, wali_kelas, alumni
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -27,9 +19,7 @@ class User extends Authenticatable
         'alumni',
     ];
 
-    /**
-     * Atribut yang boleh diisi secara mass assignment
-     */
+    // Field yang boleh diisi secara mass assignment
     protected $fillable = [
         'name',
         'email',
@@ -40,93 +30,65 @@ class User extends Authenticatable
         'alumni',
     ];
 
-    /**
-     * Atribut yang disembunyikan saat serialisasi
-     */
+    // Field yang disembunyikan saat serialisasi (password, token)
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Casting atribut ke tipe data tertentu
-     */
+    // Casting atribut ke tipe data tertentu
     protected function casts(): array
     {
         return [];
     }
 
-    // =========================================================================
-    // HELPER METHODS - Untuk pengecekan role
-    // =========================================================================
+    // === HELPER METHODS ===
 
-    /**
-     * Cek apakah user memiliki role tertentu
-     */
+    // Cek apakah user memiliki role tertentu
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
     }
 
-    /**
-     * Cek apakah user adalah Admin
-     */
+    // Cek apakah user adalah Admin
     public function isAdmin(): bool
     {
         return $this->hasRole('admin');
     }
 
-    /**
-     * Cek apakah user adalah Guru
-     */
+    // Cek apakah user adalah Guru
     public function isGuru(): bool
     {
         return $this->hasRole('guru');
     }
 
-    /**
-     * Cek apakah user adalah Wali Kelas
-     */
+    // Cek apakah user adalah Wali Kelas
     public function isWaliKelas(): bool
     {
         return $this->hasRole('wali_kelas');
     }
 
-    /**
-     * Cek apakah user adalah Alumni
-     */
+    // Cek apakah user adalah Alumni
     public function isAlumni(): bool
     {
         return $this->hasRole('alumni');
     }
 
-    // =========================================================================
-    // RELATIONSHIPS
-    // =========================================================================
+    // === RELATIONSHIPS ===
 
-    /**
-     * Relasi ke Subject (untuk role guru)
-     * Guru hanya bisa mengajar SATU mata pelajaran
-     */
+    // Relasi ke Subject (untuk role guru) - guru mengajar satu mata pelajaran
     public function subjectRelation()
     {
         return $this->belongsTo(Subject::class, 'subject');
     }
 
-    /**
-     * Relasi ke Alumni (untuk role alumni)
-     * Alumni dihubungkan via nim
-     */
+    // Relasi ke Alumni (untuk role alumni) - dihubungkan via NIM
     public function alumniRelation()
     {
         return $this->belongsTo(Alumni::class, 'alumni', 'nim');
     }
 
-    /**
-     * Relasi ke Students (untuk role wali_kelas)
-     * Wali kelas bisa akses semua siswa di kelasnya
-     * Format class: X-1, XI-2, XII-3, dll
-     */
+    // Relasi ke Students (untuk wali_kelas) - akses siswa di kelasnya 
     public function students()
     {
         return $this->hasMany(Student::class, 'rombel_absen', 'class')

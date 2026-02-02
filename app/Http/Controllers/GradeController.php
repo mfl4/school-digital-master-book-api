@@ -4,407 +4,183 @@ namespace App\Http\Controllers;
 
 use App\Models\Grade;
 use App\Models\Student;
+use App\Services\GradeService;
+use App\Http\Requests\StoreGradeRequest;
+use App\Http\Requests\UpdateGradeRequest;
+use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
-/**
- * GradeController
- * 
- * Controller untuk mengelola data nilai raport (CRUD Grades).
- * 
- * Role-based access:
- * - Admin: Full CRUD access untuk semua grades
- * - Guru: Hanya bisa CRUD grades untuk mapel yang diampu
- * - Wali Kelas: Bisa CRUD grades untuk semua mapel siswa di kelasnya
- */
+// Controller untuk mengelola nilai siswa (CRUD) dengan akses berdasarkan role (admin, guru, wali_kelas)
 class GradeController extends Controller
 {
-    // =========================================================================
-    // ADMIN METHODS
-    // =========================================================================
+    // Service untuk logic bisnis terkait grade
+    protected $gradeService;
 
-    /**
-     * Display a listing of grades (Admin Only)
-     * 
-     * GET /api/grades
-     * 
-     * Query Parameters:
-     * - student_id: Filter by student NIS
-     * - subject_id: Filter by subject ID
-     * - semester: Filter by semester
-     * - per_page: Jumlah data per halaman (default: 15)
-     */
+    // Inject GradeService melalui constructor
+    public function __construct(GradeService $gradeService)
+    {
+        $this->gradeService = $gradeService;
+    }
+
+    // === ADMIN METHODS ===
+
+    // Mengambil daftar nilai dengan filter (role-based: admin melihat semua, guru/walikelas hanya yang relevan)
     public function index(Request $request): JsonResponse
     {
-        $query = Grade::with(['student', 'subject', 'lastEditor']);
-
-        // Filter by student
-        if ($request->filled('student_id')) {
-            $query->byStudent($request->student_id);
-        }
-
-        // Filter by subject
-        if ($request->filled('subject_id')) {
-            $query->bySubject($request->subject_id);
-        }
-
-        // Filter by semester
-        if ($request->filled('semester')) {
-            $query->bySemester($request->semester);
-        }
-
-        $grades = $query->latest()->paginate($request->input('per_page', 15));
-
+        $grades = $this->gradeService->getGrades($request->all());
         return response()->json([
             'success' => true,
-            'message' => 'Data grades berhasil diambil',
-            'data' => $grades,
+            'data' => $grades
         ]);
     }
 
-    /**
-     * Store a newly created grade (Admin Only)
-     * 
-     * POST /api/grades
-     */
-    public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'student_id' => ['required', 'exists:students,nis'],
-            'subject_id' => ['required', 'exists:subjects,id'],
-            'semester' => ['required', 'string', 'max:50'],
-            'score' => ['required', 'integer', 'min:0', 'max:100'],
-        ], [
-            'student_id.required' => 'NIS siswa wajib diisi',
-            'student_id.exists' => 'Siswa tidak ditemukan',
-            'subject_id.required' => 'Mata pelajaran wajib dipilih',
-            'subject_id.exists' => 'Mata pelajaran tidak ditemukan',
-            'semester.required' => 'Semester wajib diisi',
-            'score.required' => 'Nilai wajib diisi',
-            'score.integer' => 'Nilai harus berupa angka',
-            'score.min' => 'Nilai minimal 0',
-            'score.max' => 'Nilai maksimal 100',
-        ]);
-
-        // Auto set tracking fields
-        $validated['last_edited_by'] = $request->user()->id;
-        $validated['last_edited_ip'] = $request->ip();
-        $validated['last_edited_at'] = now();
-
-        $grade = Grade::create($validated);
-        $grade->load(['student', 'subject']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Grade berhasil ditambahkan',
-            'data' => $grade,
-        ], 201);
-    }
-
-    /**
-     * Display the specified grade
-     * 
-     * GET /api/grades/{id}
-     */
+    // Menampilkan detail nilai berdasarkan ID beserta relasi student dan subject
     public function show(int $id): JsonResponse
     {
         $grade = Grade::with(['student', 'subject', 'lastEditor'])->findOrFail($id);
-
-        return response()->json([
-            'success' => true,
-            'data' => $grade,
-        ]);
+        return response()->json(['success' => true, 'data' => $grade]);
     }
 
-    /**
-     * Update the specified grade (Admin Only)
-     * 
-     * PATCH /api/grades/{id}
-     */
-    public function update(Request $request, int $id): JsonResponse
+    // Menambahkan nilai baru ke database (validasi via request)
+    public function store(StoreGradeRequest $request): JsonResponse
     {
-        $grade = Grade::findOrFail($id);
-
-        $validated = $request->validate([
-            'student_id' => ['sometimes', 'exists:students,nis'],
-            'subject_id' => ['sometimes', 'exists:subjects,id'],
-            'semester' => ['sometimes', 'string', 'max:50'],
-            'score' => ['sometimes', 'integer', 'min:0', 'max:100'],
-        ], [
-            'student_id.exists' => 'Siswa tidak ditemukan',
-            'subject_id.exists' => 'Mata pelajaran tidak ditemukan',
-            'score.integer' => 'Nilai harus berupa angka',
-            'score.min' => 'Nilai minimal 0',
-            'score.max' => 'Nilai maksimal 100',
-        ]);
-
-        // Auto update tracking fields
-        $validated['last_edited_by'] = $request->user()->id;
-        $validated['last_edited_ip'] = $request->ip();
-        $validated['last_edited_at'] = now();
-
-        $grade->update($validated);
-        $grade->load(['student', 'subject']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Grade berhasil diupdate',
-            'data' => $grade,
-        ]);
+        try {
+            $grade = $this->gradeService->createGrade($request->validated());
+            return response()->json([
+                'success' => true,
+                'message' => 'Nilai berhasil ditambahkan',
+                'data' => $grade->load(['student', 'subject'])
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 400);
+        }
     }
 
-    /**
-     * Remove the specified grade (Admin Only)
-     * 
-     * DELETE /api/grades/{id}
-     */
-    public function destroy(int $id): JsonResponse
+    // Mengupdate nilai berdasarkan ID dengan validasi akses
+    public function update(UpdateGradeRequest $request, Grade $grade): JsonResponse
     {
-        $grade = Grade::findOrFail($id);
+        try {
+            $updatedGrade = $this->gradeService->updateGrade($grade, $request->validated());
+            return response()->json([
+                'success' => true,
+                'message' => 'Nilai berhasil diperbarui',
+                'data' => $updatedGrade->load(['student', 'subject'])
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 403);
+        }
+    }
+
+    // Menghapus nilai (admin bisa hapus semua, guru hanya untuk mapel sendiri)
+    public function destroy(Grade $grade): JsonResponse
+    {
+        $user = Auth::user();
+        // Validasi: admin bisa hapus semua, guru hanya mata pelajaran sendiri
+        if ($user->role !== 'admin') {
+            if ($user->role === 'guru' && $user->subject != $grade->subject_id) {
+                return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+            }
+        }
+
         $grade->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Grade berhasil dihapus',
-        ]);
+        return response()->json(['success' => true, 'message' => 'Nilai berhasil dihapus']);
     }
 
-    // =========================================================================
-    // GURU METHODS
-    // =========================================================================
+    // === GURU METHODS ===
 
-    /**
-     * Display grades yang di-input oleh guru (Guru Only)
-     * 
-     * GET /api/my-grades
-     */
+    // Endpoint untuk guru mengambil nilai mata pelajaran yang diampu
     public function myGrades(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        // Guru hanya bisa lihat grades yang dia input sendiri untuk mapel yang diampu
-        $query = Grade::with(['student', 'subject'])
-            ->where('subject_id', $user->subject)
-           ->where('last_edited_by', $user->id);
-
-        // Filter by semester
-        if ($request->filled('semester')) {
-            $query->bySemester($request->semester);
-        }
-
-        $grades = $query->latest()->paginate($request->input('per_page', 15));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data grades berhasil diambil',
-            'data' => $grades,
-        ]);
+        // Logic filtering ada di service berdasarkan user role
+        return $this->index($request);
     }
 
-    /**
-     * Input nilai oleh guru (Guru Only)
-     * Guru hanya bisa input nilai untuk mapel yang diampu
-     * 
-     * POST /api/my-grades
-     */
-    public function storeMyGrade(Request $request): JsonResponse
+    // Guru menambahkan nilai untuk mata pelajaran yang diampu
+    public function storeMyGrade(StoreGradeRequest $request): JsonResponse
     {
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'student_id' => ['required', 'exists:students,nis'],
-            'semester' => ['required', 'string', 'max:50'],
-            'score' => ['required', 'integer', 'min:0', 'max:100'],
-        ], [
-            'student_id.required' => 'NIS siswa wajib diisi',
-            'student_id.exists' => 'Siswa tidak ditemukan',
-            'semester.required' => 'Semester wajib diisi',
-            'score.required' => 'Nilai wajib diisi',
-            'score.integer' => 'Nilai harus berupa angka',
-            'score.min' => 'Nilai minimal 0',
-            'score.max' => 'Nilai maksimal 100',
-        ]);
-
-        // Auto set subject_id dari guru yang login
-        $validated['subject_id'] = $user->subject;
-
-        // Auto set tracking fields
-        $validated['last_edited_by'] = $user->id;
-        $validated['last_edited_ip'] = $request->ip();
-        $validated['last_edited_at'] = now();
-
-        $grade = Grade::create($validated);
-        $grade->load(['student', 'subject']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai berhasil ditambahkan',
-            'data' => $grade,
-        ], 201);
+        return $this->store($request);
     }
 
-    /**
-     * Update nilai oleh guru (Guru Only)
-     * Guru hanya bisa update nilai yang dia input sendiri
-     * 
-     * PATCH /api/my-grades/{id}
-     */
-    public function updateMyGrade(Request $request, int $id): JsonResponse
+    // Guru mengupdate nilai berdasarkan ID
+    public function updateMyGrade(UpdateGradeRequest $request, int $id): JsonResponse
     {
-        $user = $request->user();
         $grade = Grade::findOrFail($id);
-
-        // Validasi: Guru hanya bisa update grade yang dia input sendiri
-        if ($grade->last_edited_by !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Anda hanya bisa mengupdate nilai yang Anda input sendiri',
-            ], 403);
-        }
-
-        // Validasi: Guru hanya bisa update grade untuk mapel yang diampu
-        if ($grade->subject_id !== $user->subject) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Anda hanya bisa mengupdate nilai untuk mata pelajaran yang Anda ampu',
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'score' => ['required', 'integer', 'min:0', 'max:100'],
-        ], [
-            'score.required' => 'Nilai wajib diisi',
-            'score.integer' => 'Nilai harus berupa angka',
-            'score.min' => 'Nilai minimal 0',
-            'score.max' => 'Nilai maksimal 100',
-        ]);
-
-        // Auto update tracking fields
-        $validated['last_edited_by'] = $user->id;
-        $validated['last_edited_ip'] = $request->ip();
-        $validated['last_edited_at'] = now();
-
-        $grade->update($validated);
-        $grade->load(['student', 'subject']);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai berhasil diupdate',
-            'data' => $grade,
-        ]);
+        return $this->update($request, $grade);
     }
 
-    /**
-     * Delete nilai oleh guru (Guru Only)
-     * Guru hanya bisa delete nilai yang dia input sendiri
-     * 
-     * DELETE /api/my-grades/{id}
-     */
+    // Guru menghapus nilai yang sudah diinput
     public function destroyMyGrade(Request $request, int $id): JsonResponse
     {
-        $user = $request->user();
         $grade = Grade::findOrFail($id);
-
-        // Validasi: Guru hanya bisa delete grade yang dia input sendiri
-        if ($grade->last_edited_by !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Anda hanya bisa menghapus nilai yang Anda input sendiri',
-            ], 403);
-        }
-
-        $grade->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai berhasil dihapus',
-        ]);
+        return $this->destroy($grade);
     }
 
-    // =========================================================================
-    // WALI KELAS METHODS
-    // =========================================================================
+    // === WALI KELAS METHODS ===
 
-    /**
-     * Display grades siswa di kelas wali kelas (Wali Kelas Only)
-     * 
-     * GET /api/wali/grades
-     */
+    // Wali kelas mengambil nilai siswa di kelasnya
     public function classGrades(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        // Get grades untuk siswa di kelas wali kelas
-        $query = Grade::with(['student', 'subject', 'lastEditor'])
-            ->byClass($user->class);
-
-        // Filter by semester
-        if ($request->filled('semester')) {
-            $query->bySemester($request->semester);
-        }
-
-        // Filter by subject
-        if ($request->filled('subject_id')) {
-            $query->bySubject($request->subject_id);
-        }
-
-        $grades = $query->latest()->paginate($request->input('per_page', 15));
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Data grades berhasil diambil',
-            'data' => $grades,
-        ]);
+        return $this->index($request);
     }
 
-    /**
-     * Input nilai untuk siswa di kelas (Wali Kelas Only)
-     * Wali kelas bisa input nilai untuk semua mapel siswa di kelasnya
-     * 
-     * POST /api/wali/grades
-     */
-    public function storeClassGrade(Request $request): JsonResponse
+    // Wali kelas menambahkan nilai untuk siswa di kelasnya
+    public function storeClassGrade(StoreGradeRequest $request): JsonResponse
     {
-        $user = $request->user();
+        $user = Auth::user();
+        if ($user->role !== 'wali_kelas') {
+            return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+        }
 
-        $validated = $request->validate([
-            'student_id' => ['required', 'exists:students,nis'],
-            'subject_id' => ['required', 'exists:subjects,id'],
-            'semester' => ['required', 'string', 'max:50'],
-            'score' => ['required', 'integer', 'min:0', 'max:100'],
-        ], [
-            'student_id.required' => 'NIS siswa wajib diisi',
-            'student_id.exists' => 'Siswa tidak ditemukan',
-            'subject_id.required' => 'Mata pelajaran wajib dipilih',
-            'subject_id.exists' => 'Mata pelajaran tidak ditemukan',
-            'semester.required' => 'Semester wajib diisi',
-            'score.required' => 'Nilai wajib diisi',
-            'score.integer' => 'Nilai harus berupa angka',
-            'score.min' => 'Nilai minimal 0',
-            'score.max' => 'Nilai maksimal 100',
-        ]);
-
-        // Validasi: Wali kelas hanya bisa input nilai untuk siswa di kelasnya
-        $student = Student::findOrFail($validated['student_id']);
-        if (!str_starts_with($student->rombel_absen, $user->class . '-')) {
+        // Validasi: siswa harus di kelas yang diampu wali kelas
+        $student = Student::where('nis', $request->student_id)->first();
+        if (!$student || !str_starts_with($student->rombel_absen, $user->class)) {
             return response()->json([
                 'success' => false,
                 'error' => 'Anda hanya bisa menginput nilai untuk siswa di kelas Anda',
             ], 403);
         }
 
-        // Auto set tracking fields
-        $validated['last_edited_by'] = $user->id;
-        $validated['last_edited_ip'] = $request->ip();
-        $validated['last_edited_at'] = now();
+        return $this->store($request);
+    }
 
-        $grade = Grade::create($validated);
-        $grade->load(['student', 'subject']);
+    // Wali kelas mengupdate nilai siswa di kelasnya
+    public function updateClassGrade(UpdateGradeRequest $request, Grade $grade): JsonResponse
+    {
+        $user = Auth::user();
+        if ($user->role !== 'wali_kelas') {
+            return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nilai berhasil ditambahkan',
-            'data' => $grade,
-        ], 201);
+        // Validasi: nilai harus milik siswa di kelas yang diampu
+        $student = Student::where('nis', $grade->student_id)->first();
+        if (!$student || !str_starts_with($student->rombel_absen, $user->class)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Anda hanya bisa mengubah nilai siswa di kelas Anda',
+            ], 403);
+        }
+
+        return $this->update($request, $grade);
+    }
+
+    // Wali kelas menghapus nilai siswa di kelasnya
+    public function destroyClassGrade(Grade $grade): JsonResponse
+    {
+        $user = Auth::user();
+        if ($user->role !== 'wali_kelas') {
+            return response()->json(['success' => false, 'error' => 'Unauthorized'], 403);
+        }
+
+        // Validasi: nilai harus milik siswa di kelas yang diampu
+        $student = Student::where('nis', $grade->student_id)->first();
+        if (!$student || !str_starts_with($student->rombel_absen, $user->class)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Anda hanya bisa menghapus nilai siswa di kelas Anda',
+            ], 403);
+        }
+
+        return $this->destroy($grade);
     }
 }

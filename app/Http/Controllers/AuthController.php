@@ -6,120 +6,81 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
-/**
- * AuthController
- * 
- * Controller untuk menangani autentikasi pengguna:
- * - Login: Autentikasi dan generate token
- * - Logout: Hapus token aktif
- * - Current User: Ambil data pengguna yang sedang login
- */
+// Controller untuk menangani autentikasi pengguna (login, logout, current user)
 class AuthController extends Controller
 {
-    /**
-     * Login user dan generate token Sanctum
-     * 
-     * Proses:
-     * 1. Validasi input email dan password
-     * 2. Cari user berdasarkan email
-     * 3. Verifikasi password dengan Hash::check()
-     * 4. Generate token baru menggunakan Sanctum
-     * 5. Kembalikan response dengan token dan data user
-     */
-
+    // Method untuk login user: validasi kredensial dan buat session
     public function login(Request $request): JsonResponse
     {
-        // Validasi input dengan pesan error dalam Bahasa Indonesia
         $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:6']
-        ], [
-            'email.required' => 'Email wajib diisi',
-            'email.email' => 'Format email tidak valid',
-            'password.required' => 'Password wajib diisi',
-            'password.min' => 'Password minimal 6 karakter'
+            'email' => ['required', 'email'],
+            'password' => ['required'],
         ]);
 
-        // Cari user berdasarkan email
-        $user = User::where('email', $validated['email'])->first();
+        if (Auth::attempt($validated)) {
+            $request->session()->regenerate();
+            $user = Auth::user();
 
-        // Validasi ketika user tidak ditemukan ATAU password tidak cocok
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+            // Muat relasi subject dan alumni untuk user yang berhasil login
+            $user->load('subjectRelation', 'alumniRelation');
+
             return response()->json([
-                'message' => 'Email atau password salah'
-            ], 401);
+                'success' => true,
+                'message' => 'Login berhasil',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'subject' => $user->subjectRelation,
+                    'class' => $user->class,
+                    'alumni' => $user->alumniRelation,
+                ]
+            ]);
         }
 
-        // Generate token dengan nama unik
-        $tokenName = 'auth_token_' . $user->id . '_' . now()->timestamp;
-        $token = $user->createToken($tokenName)->plainTextToken;
-
-        // Load relasi berdasarkan role untuk frontend
-        // Guru membutuhkan subject.name, Alumni membutuhkan data alumni
-        $user->load('subjectRelation', 'alumniRelation');
-
         return response()->json([
-            'success' => true,
-            'message' => 'Login berhasil',
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'subject' => $user->subjectRelation,  // Object dengan name
-                'class' => $user->class,
-                'alumni' => $user->alumniRelation,    // Object dengan data lengkap
-            ]
-        ]);
+            'message' => 'Email atau password salah'
+        ], 401);
     }
 
-    /**
-     * Logout user dan hapus token saat ini
-     * 
-     * Proses:
-     * 1. Ambil token yang sedang digunakan via currentAccessToken()
-     * 2. Hapus token tersebut dari database
-     * 3. Kembalikan response sukses
-     */
-
+    // Method untuk logout user: hapus session dan regenerate token untuk keamanan
     public function logout(Request $request): JsonResponse
     {
-        // Hapus token saat ini
-        $request->user()->currentAccessToken()->delete();
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
         return response()->json([
             'success' => true,
             'message' => 'Logout berhasil'
         ]);
     }
 
-    /**
-     * Get data user yang sedang login
-     * 
-     * Proses:
-     * 1. Ambil user dari request (sudah di-inject oleh middleware auth:sanctum)
-     * 2. Kembalikan data user lengkap
-     */
-
+    // Method untuk mengambil data user yang sedang login beserta relasi subject dan alumni
     public function currentUser(Request $request): JsonResponse
     {
         $user = $request->user();
         
-        // Load relasi untuk konsistensi dengan login response
+        if (!$user) {
+             return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        // Muat relasi untuk ditampilkan di frontend
         $user->load('subjectRelation', 'alumniRelation');
         
         return response()->json([
             'message' => 'Data user berhasil diambil',
-            'data' => [
+            'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
-                'subject' => $user->subjectRelation,  // Object dengan name
+                'subject' => $user->subjectRelation,
                 'class' => $user->class,
-                'alumni' => $user->alumniRelation,    // Object dengan data lengkap
+                'alumni' => $user->alumniRelation,
             ]
         ]);
     }

@@ -5,36 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Alumni Model
- * 
- * Menyimpan data alumni setelah lulus dari sekolah.
- * NIM digunakan sebagai primary key.
- */
+// Model Alumni - data alumni setelah lulus dari sekolah (NIM sebagai primary key)
 class Alumni extends Model
 {
     use HasFactory;
 
-    /**
-     * Nama tabel (singular untuk alumni)
-     */
+    // Nama tabel singular untuk alumni
     protected $table = 'alumni';
 
-    /**
-     * Primary key adalah string (NIM), bukan auto-increment
-     */
+    // Primary key adalah NIM (string), bukan auto-increment
     protected $primaryKey = 'nim';
     public $incrementing = false;
     protected $keyType = 'string';
 
-    /**
-     * Disable default timestamps karena menggunakan custom updated_at
-     */
+    // Disable timestamps default karena menggunakan custom updated_at
     public $timestamps = false;
 
-    /**
-     * Atribut yang boleh diisi secara mass assignment
-     */
+    // Field yang boleh diisi secara mass assignment
     protected $fillable = [
         'nim',
         'name',
@@ -56,9 +43,7 @@ class Alumni extends Model
         'created_at',
     ];
 
-    /**
-     * Casting atribut ke tipe data tertentu
-     */
+    // Casting atribut ke tipe data tertentu
     protected function casts(): array
     {
         return [
@@ -70,85 +55,61 @@ class Alumni extends Model
         ];
     }
 
-    // =========================================================================
-    // RELATIONSHIPS
-    // =========================================================================
+    // === RELATIONSHIPS ===
 
-    /**
-     * Relasi ke Student (data saat masih menjadi siswa)
-     */
+    // Relasi ke Student (data saat masih menjadi siswa)
     public function student()
     {
         return $this->belongsTo(Student::class, 'nis', 'nis');
     }
 
-    /**
-     * Relasi ke User yang terakhir mengupdate
-     */
+    // Relasi ke User yang terakhir update data alumni
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /**
-     * Relasi ke User account (jika alumni memiliki akun)
-     */
+    // Relasi ke User account (jika alumni punya akun login)
     public function userAccount()
     {
         return $this->hasOne(User::class, 'alumni', 'nim');
     }
 
-    // =========================================================================
-    // ACCESSORS & MUTATORS
-    // =========================================================================
+    // === ACCESSORS & MUTATORS ===
 
-    /**
-     * Cek apakah alumni masih bekerja
-     */
+    // Cek apakah alumni masih bekerja (job_title ada, job_start ada, job_end kosong)
     public function getIsCurrentlyWorkingAttribute(): bool
     {
         return $this->job_title && $this->job_start && !$this->job_end;
     }
 
-    /**
-     * Get tahun sejak lulus
-     */
+    // Get berapa tahun sejak lulus
     public function getYearsSinceGraduationAttribute(): int
     {
         return now()->year - $this->graduation_year;
     }
 
-    // =========================================================================
-    // SCOPES
-    // =========================================================================
+    // === SCOPES ===
 
-    /**
-     * Scope untuk filter berdasarkan tahun kelulusan
-     */
+    // Filter berdasarkan tahun kelulusan
     public function scopeByGraduationYear($query, int $year)
     {
         return $query->where('graduation_year', $year);
     }
 
-    /**
-     * Scope untuk filter alumni yang sudah bekerja
-     */
+    // Filter alumni yang sudah bekerja
     public function scopeEmployed($query)
     {
         return $query->whereNotNull('job_title');
     }
 
-    /**
-     * Scope untuk filter alumni yang sudah kuliah
-     */
+    // Filter alumni yang sedang kuliah  
     public function scopeInUniversity($query)
     {
         return $query->whereNotNull('university');
     }
 
-    /**
-     * Scope untuk pencarian berdasarkan nama atau NIM
-     */
+    // Pencarian berdasarkan NIM, nama, atau email
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {

@@ -5,34 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Student Model (Data Induk Siswa)
- * 
- * Menyimpan data siswa berdasarkan format Model 8355.
- * NIS digunakan sebagai primary key.
- */
+// Model Student (Data Induk Siswa) - NIS sebagai primary key
 class Student extends Model
 {
     use HasFactory;
 
-    /**
-     * Primary key adalah string (NIS), bukan auto-increment
-     */
+    // Primary key adalah NIS (string), bukan auto-increment
     protected $primaryKey = 'nis';
     public $incrementing = false;
     protected $keyType = 'string';
 
-    /**
-     * Daftar jenis kelamin yang valid
-     */
+    // Konstanta jenis kelamin
     public const GENDERS = [
         'L' => 'Laki-laki',
         'P' => 'Perempuan',
     ];
 
-    /**
-     * Daftar agama yang valid
-     */
+    // Konstanta agama yang valid
     public const RELIGIONS = [
         'Islam',
         'Kristen',
@@ -42,9 +31,7 @@ class Student extends Model
         'Konghucu',
     ];
 
-    /**
-     * Atribut yang boleh diisi secara mass assignment
-     */
+    // Field yang boleh diisi secara mass assignment
     protected $fillable = [
         'nis',
         'nisn',
@@ -62,9 +49,10 @@ class Student extends Model
         'last_edited_at',
     ];
 
-    /**
-     * Casting atribut ke tipe data tertentu
-     */
+    // Atribut yang selalu disertakan dalam JSON (class, gender_label)
+    protected $appends = ['class', 'gender_label'];
+
+    // Casting atribut ke tipe data tertentu
     protected function casts(): array
     {
         return [
@@ -73,79 +61,57 @@ class Student extends Model
         ];
     }
 
-    // =========================================================================
-    // RELATIONSHIPS
-    // =========================================================================
+    // === RELATIONSHIPS ===
 
-    /**
-     * Relasi ke User yang terakhir mengedit
-     */
+    // Relasi ke User yang terakhir mengedit student ini
     public function lastEditor()
     {
         return $this->belongsTo(User::class, 'last_edited_by');
     }
 
-    /**
-     * Relasi ke Alumni (jika siswa ini sudah menjadi alumni)
-     */
+    // Relasi ke Alumni (jika siswa ini sudah lulus)
     public function alumni()
     {
         return $this->hasOne(Alumni::class, 'nis', 'nis');
     }
 
-    // =========================================================================
-    // ACCESSORS & MUTATORS
-    // =========================================================================
+    // === ACCESSORS & MUTATORS ===
 
-    /**
-     * Get label jenis kelamin
-     */
+    // Get label jenis kelamin (L -> Laki-laki, P -> Perempuan)
     public function getGenderLabelAttribute(): string
     {
         return self::GENDERS[$this->gender] ?? $this->gender;
     }
 
-    /**
-     * Get kelas dari rombel_absen (misal: X-1-01 -> X-1)
-     */
+    // Get kelas dari rombel_absen (X-1-01 -> X-1)
     public function getClassAttribute(): string
     {
         $parts = explode('-', $this->rombel_absen);
         return count($parts) >= 2 ? $parts[0] . '-' . $parts[1] : $this->rombel_absen;
     }
 
-    /**
-     * Get nomor absen dari rombel_absen (misal: X-1-01 -> 01)
-     */
+    // Get nomor absen dari rombel_absen (X-1-01 -> 01)
     public function getAbsenAttribute(): string
     {
         $parts = explode('-', $this->rombel_absen);
         return count($parts) >= 3 ? $parts[2] : '';
     }
 
-    // =========================================================================
-    // SCOPES
-    // =========================================================================
+    // === SCOPES ===
 
-    /**
-     * Scope untuk filter berdasarkan kelas
-     */
+    // Filter berdasarkan kelas (X-1, XI-2, dll)
     public function scopeByClass($query, string $class)
     {
         return $query->where('rombel_absen', 'LIKE', $class . '-%');
     }
 
-    /**
-     * Scope untuk filter berdasarkan jenis kelamin
-     */
+    // Filter berdasarkan jenis kelamin
     public function scopeByGender($query, string $gender)
     {
         return $query->where('gender', $gender);
     }
 
-    /**
-     * Scope untuk pencarian berdasarkan nama atau NIS
-     */
+    // Pencarian berdasarkan NIS, NISN, atau nama
     public function scopeSearch($query, string $search)
     {
         return $query->where(function ($q) use ($search) {

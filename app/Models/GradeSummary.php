@@ -4,17 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * GradeSummary Model (Ringkasan Nilai per Semester)
- * 
- * Menyimpan ringkasan nilai siswa per semester.
- * Auto-update via GradeObserver ketika ada perubahan di tabel grades.
- */
+// Model GradeSummary (Ringkasan Nilai per Semester) - auto-update via GradeObserver
 class GradeSummary extends Model
 {
-    /**
-     * Atribut yang boleh diisi secara mass assignment
-     */
+    // Field yang boleh diisi secara mass assignment
     protected $fillable = [
         'student_id',
         'semester',
@@ -23,9 +16,7 @@ class GradeSummary extends Model
         'calculated_at',
     ];
 
-    /**
-     * Casting atribut ke tipe data tertentu
-     */
+    // Casting atribut ke tipe data tertentu
     protected function casts(): array
     {
         return [
@@ -34,81 +25,57 @@ class GradeSummary extends Model
         ];
     }
 
-    // =========================================================================
-    // RELATIONSHIPS
-    // =========================================================================
+    // === RELATIONSHIPS ===
 
-    /**
-     * Relasi ke Student
-     */
+    // Relasi ke Student
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id', 'nis');
     }
 
-    /**
-     * Relasi ke Grades (untuk mendapatkan detail nilai per mapel)
-     */
+    // Relasi ke Grades (untuk mendapatkan detail nilai per mapel)
     public function grades()
     {
         return $this->hasMany(Grade::class, 'student_id', 'student_id')
             ->where('grades.semester', '=', $this->semester);
     }
 
-    // =========================================================================
-    // ACCESSORS
-    // =========================================================================
+    // === ACCESSORS ===
 
-    /**
-     * Get GPA (Grade Point Average) format 0.00 - 4.00
-     * Konversi dari rata-rata 0-100 ke GPA 0-4
-     */
+    // Ambil GPA (Indeks Prestasi) format 0.00 - 4.00
     public function getGradePointAverageAttribute(): float
     {
-        // Rumus konversi: GPA = (average_score / 100) * 4
+        // Konversi dari rata-rata 0-100 ke GPA 0-4
         return round(($this->average_score / 100) * 4, 2);
     }
 
-    /**
-     * Get status kelulusan berdasarkan rata-rata
-     * Lulus jika rata-rata >= 75
-     */
+    // Get status kelulusan berdasarkan rata-rata (Lulus jika >= 75)
     public function getStatusAttribute(): string
     {
         return $this->average_score >= 75 ? 'Lulus' : 'Tidak Lulus';
     }
 
-    // =========================================================================
-    // SCOPES
-    // =========================================================================
+    // === SCOPES ===
 
-    /**
-     * Scope untuk filter berdasarkan semester
-     */
+    // Filter berdasarkan semester
     public function scopeBySemester($query, string $semester)
     {
         return $query->where('semester', $semester);
     }
 
-    /**
-     * Scope untuk filter berdasarkan student
-     */
+    // Filter berdasarkan student
     public function scopeByStudent($query, string $nis)
     {
         return $query->where('student_id', $nis);
     }
 
-    /**
-     * Scope untuk filter berdasarkan status kelulusan
-     */
+    // Filter berdasarkan status kelulusan (average >= 75)
     public function scopePassing($query)
     {
         return $query->where('average_score', '>=', 75);
     }
 
-    /**
-     * Scope untuk filter berdasarkan kelas (dari student)
-     */
+    // Filter berdasarkan kelas (dari student)
     public function scopeByClass($query, string $class)
     {
         return $query->whereHas('student', function ($q) use ($class) {
@@ -116,14 +83,9 @@ class GradeSummary extends Model
         });
     }
 
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
+    // === HELPER METHODS ===
 
-    /**
-     * Recalculate summary dari grades
-     * Method ini dipanggil oleh Observer
-     */
+    // Hitung ulang ringkasan dari nilai (dipanggil oleh Observer)
     public function recalculate(): void
     {
         $stats = Grade::where('student_id', $this->student_id)
@@ -138,9 +100,7 @@ class GradeSummary extends Model
         ]);
     }
 
-    /**
-     * Cek apakah lulus (average >= 75)
-     */
+    // Cek apakah lulus (average >= 75)
     public function isPassing(): bool
     {
         return $this->average_score >= 75;

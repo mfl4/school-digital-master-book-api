@@ -4,21 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Notification Model
- * 
- * Menyimpan notifikasi untuk admin.
- */
+// Model Notification - menyimpan notifikasi untuk admin
 class Notification extends Model
 {
-    /**
-     * Disable updated_at karena notifikasi tidak di-update
-     */
+    // Disable updated_at karena notifikasi tidak di-update
     public $timestamps = false;
 
-    /**
-     * Atribut yang boleh diisi secara mass assignment
-     */
+    // Field yang boleh diisi secara mass assignment
     protected $fillable = [
         'type',
         'message',
@@ -28,9 +20,7 @@ class Notification extends Model
         'created_at',
     ];
 
-    /**
-     * Casting atribut ke tipe data tertentu
-     */
+    // Casting atribut ke tipe data tertentu
     protected function casts(): array
     {
         return [
@@ -39,33 +29,23 @@ class Notification extends Model
         ];
     }
 
-    // =========================================================================
-    // RELATIONSHIPS
-    // =========================================================================
+    // === RELATIONSHIPS ===
 
-    /**
-     * Relasi ke User yang memicu notifikasi
-     */
+    // Relasi ke User yang memicu notifikasi
     public function triggeredBy()
     {
         return $this->belongsTo(User::class, 'triggered_by');
     }
 
-    // =========================================================================
-    // SCOPES
-    // =========================================================================
+    // === SCOPES ===
 
-    /**
-     * Scope untuk notifikasi yang belum dibaca
-     */
+    // Scope untuk notifikasi yang belum dibaca
     public function scopeUnread($query)
     {
         return $query->where('is_read', false);
     }
 
-    /**
-     * Scope untuk filter berdasarkan tipe
-     */
+    // Scope untuk filter berdasarkan tipe
     public function scopeOfType($query, string $type)
     {
         return $query->where('type', $type);

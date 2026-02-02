@@ -7,29 +7,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * UserController
- * 
- * Controller untuk mengelola data user (CRUD).
- * Hanya dapat diakses oleh Admin.
- */
+// Controller untuk mengelola user (CRUD) khusus untuk admin (create, read, update, delete users)
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     * 
-     * GET /api/users
-     * 
-     * Query Parameters:
-     * - search: Cari berdasarkan nama atau email
-     * - role: Filter berdasarkan role
-     * - per_page: Jumlah data per halaman (default: 15)
-     */
+    // Mengambil daftar user dengan filter search dan role, serta pagination
     public function index(Request $request)
     {
         $query = User::query();
 
-        // Search
+        // Filter pencarian berdasarkan nama atau email
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -38,29 +24,25 @@ class UserController extends Controller
             });
         }
 
-        // Filter by role
+        // Filter berdasarkan role (admin, guru, wali_kelas, alumni)
         if ($request->filled('role')) {
             $query->where('role', $request->role);
         }
 
-        // Load relasi untuk ditampilkan di frontend
+        // Muat relasi subject dan alumni untuk ditampilkan di frontend
         $query->with(['subjectRelation', 'alumniRelation']);
 
-        // Order by name
+        // Urutkan berdasarkan nama
         $query->orderBy('name');
 
-        // Pagination
+        // Pagination dengan default 15 items per page
         $perPage = $request->input('per_page', 15);
         $users = $query->paginate($perPage);
 
         return response()->json($users, Response::HTTP_OK);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     * 
-     * POST /api/users
-     */
+    // Menambahkan user baru dengan role dan field spesifik sesuai role
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -73,15 +55,15 @@ class UserController extends Controller
             'alumni' => 'nullable|string|max:20|exists:alumni,nim|required_if:role,alumni',
         ]);
 
-        // Sanitize based on role
+        // Sanitasi field berdasarkan role (guru->subject, wali_kelas->class, alumni->alumni)
         $validated = $this->sanitizeByRole($validated);
 
-        // Hash password
+        // Hash password sebelum disimpan ke database
         $validated['password'] = Hash::make($validated['password']);
 
         $user = User::create($validated);
         
-        // Load relasi setelah create
+        // Muat relasi setelah create agar response lengkap
         $user->load(['subjectRelation', 'alumniRelation']);
 
         return response()->json([
@@ -90,24 +72,16 @@ class UserController extends Controller
         ], Response::HTTP_CREATED);
     }
 
-    /**
-     * Display the specified resource.
-     * 
-     * GET /api/users/{id}
-     */
+    // Menampilkan detail user berdasarkan ID beserta relasinya
     public function show(User $user)
     {
-        // Load relasi untuk detail user
+        // Muat relasi untuk detail user lengkap
         $user->load(['subjectRelation', 'alumniRelation']);
         
         return response()->json($user, Response::HTTP_OK);
     }
 
-    /**
-     * Update the specified resource in storage.
-     * 
-     * PUT /api/users/{id}
-     */
+    // Mengupdate data user dengan validasi dan sanitasi berdasarkan role
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
@@ -120,19 +94,19 @@ class UserController extends Controller
             'alumni' => 'nullable|string|max:20|exists:alumni,nim',
         ]);
 
-        // Jika role berubah, sanitize fields
+        // Jika role berubah, sanitasi field yang tidak relevan
         if (isset($validated['role'])) {
             $validated = $this->sanitizeByRole($validated);
         }
 
-        // Hash password jika ada
+        // Hash password baru jika diubah
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         }
 
         $user->update($validated);
         
-        // Refresh dan load relasi
+        // Refresh model dan muat relasi terbaru
         $user = $user->fresh(['subjectRelation', 'alumniRelation']);
 
         return response()->json([
@@ -141,14 +115,10 @@ class UserController extends Controller
         ], Response::HTTP_OK);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     * 
-     * DELETE /api/users/{id}
-     */
+    // Menghapus user dari database (tidak bisa hapus diri sendiri)
     public function destroy(Request $request, User $user)
     {
-        // Tidak bisa hapus diri sendiri
+        // Validasi: user tidak bisa menghapus akun sendiri
         if ($user->id === $request->user()->id) {
             return response()->json([
                 'message' => 'Tidak dapat menghapus akun sendiri.',
@@ -162,13 +132,7 @@ class UserController extends Controller
         ], Response::HTTP_OK);
     }
 
-    /**
-     * Sanitize fields berdasarkan role
-     * - Guru: hanya subject yang diisi
-     * - Wali Kelas: hanya class yang diisi
-     * - Alumni: hanya alumni yang diisi
-     * - Admin: semua null
-     */
+    // Helper method: sanitasi field berdasarkan role user
     protected function sanitizeByRole(array $data): array
     {
         $role = $data['role'] ?? null;

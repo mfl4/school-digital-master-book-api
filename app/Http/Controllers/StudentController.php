@@ -3,228 +3,103 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Services\StudentService;
+use App\Http\Requests\StoreStudentRequest;
+use App\Http\Requests\UpdateStudentRequest;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * StudentController
- *
- * Controller untuk mengelola data siswa (CRUD).
- * Hanya dapat diakses oleh Admin dan Wali Kelas.
- */
+// Controller untuk mengelola data siswa (CRUD) dengan akses berbasis role
 class StudentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * GET /api/students
-     *
-     * Query Parameters:
-     * - search: Cari berdasarkan NIS, NISN, atau nama
-     * - class: Filter berdasarkan kelas (contoh: X-1)
-     * - gender: Filter berdasarkan jenis kelamin (L/P)
-     * - per_page: Jumlah data per halaman (default: 15)
-     */
-    public function index(Request $request)
+    // Service untuk logic bisnis terkait student
+    protected $studentService;
+
+    // Inject StudentService untuk digunakan di semua method
+    public function __construct(StudentService $studentService)
     {
-        $query = Student::query();
-
-        // Filter berdasarkan kelas untuk wali kelas
-        if ($request->user()->isWaliKelas()) {
-            $query->byClass($request->user()->class);
-        }
-
-        // Search
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
-
-        // Filter by class (hanya admin yang bisa filter semua kelas)
-        if ($request->filled('class') && $request->user()->isAdmin()) {
-            $query->byClass($request->class);
-        }
-
-        // Filter by gender
-        if ($request->filled('gender')) {
-            $query->byGender($request->gender);
-        }
-
-        // Order by rombel_absen
-        $query->orderBy('rombel_absen')->orderBy('name');
-
-        // Pagination
-        $perPage = $request->input('per_page', 15);
-        $students = $query->paginate($perPage);
-
-        return response()->json($students, Response::HTTP_OK);
+        $this->studentService = $studentService;
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * POST /api/students
-     */
-    public function store(Request $request)
+    // Mengambil daftar siswa dengan filter dan pagination
+    public function index(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'nis' => 'required|string|max:20|unique:students,nis',
-            'nisn' => 'required|string|max:20|unique:students,nisn',
-            'name' => 'required|string|max:100',
-            'gender' => 'required|in:L,P',
-            'birth_place' => 'required|string|max:50',
-            'birth_date' => 'required|date',
-            'religion' => 'required|in:'.implode(',', Student::RELIGIONS),
-            'father_name' => 'required|string|max:100',
-            'address' => 'required|string',
-            'ijazah_number' => 'nullable|string|max:50',
-            'rombel_absen' => 'required|string|max:10|regex:/^(X|XI|XII)-\d+-\d+$/',
-        ]);
-
-        // Tambah tracking info
-        $validated['last_edited_by'] = $request->user()->id;
-        $validated['last_edited_ip'] = $request->ip();
-        $validated['last_edited_at'] = now();
-
-        $student = Student::create($validated);
-
-        return response()->json([
-            'message' => 'Data siswa berhasil ditambahkan.',
-            'data' => $student,
-        ], Response::HTTP_CREATED);
+        $students = $this->studentService->getStudents($request->all());
+        return response()->json($students);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * GET /api/students/{nis}
-     */
-    public function show(Request $request, string $nis)
+    // Menambahkan data siswa baru ke database
+    public function store(StoreStudentRequest $request): JsonResponse
     {
-        $student = Student::findOrFail($nis);
-
-        // Wali kelas hanya bisa lihat siswa di kelasnya
-        if ($request->user()->isWaliKelas()) {
-            if ($student->class !== $request->user()->class) {
-                return response()->json([
-                    'message' => 'Anda tidak memiliki akses ke data siswa ini.',
-                ], Response::HTTP_FORBIDDEN);
-            }
-        }
-
-        // Load relasi
-        $student->load('lastEditor');
-
-        return response()->json($student, Response::HTTP_OK);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * PUT /api/students/{nis}
-     */
-    public function update(Request $request, string $nis)
-    {
-        $student = Student::findOrFail($nis);
-
-        // Wali kelas hanya bisa edit siswa di kelasnya
-        if ($request->user()->isWaliKelas()) {
-            if ($student->class !== $request->user()->class) {
-                return response()->json([
-                    'message' => 'Anda tidak memiliki akses untuk mengedit data siswa ini.',
-                ], Response::HTTP_FORBIDDEN);
-            }
-        }
-
-        $validated = $request->validate([
-            'nisn' => 'sometimes|string|max:20|unique:students,nisn,'.$nis.',nis',
-            'name' => 'sometimes|string|max:100',
-            'gender' => 'sometimes|in:L,P',
-            'birth_place' => 'sometimes|string|max:50',
-            'birth_date' => 'sometimes|date',
-            'religion' => 'sometimes|in:'.implode(',', Student::RELIGIONS),
-            'father_name' => 'sometimes|string|max:100',
-            'address' => 'sometimes|string',
-            'ijazah_number' => 'nullable|string|max:50',
-            'rombel_absen' => 'sometimes|string|max:10|regex:/^(X|XI|XII)-\d+-\d+$/',
-        ]);
-
-        // Update tracking info
-        $validated['last_edited_by'] = $request->user()->id;
-        $validated['last_edited_ip'] = $request->ip();
-        $validated['last_edited_at'] = now();
-
-        $student->update($validated);
-
-        return response()->json([
-            'message' => 'Data siswa berhasil diperbarui.',
-            'data' => $student->fresh(),
-        ], Response::HTTP_OK);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * DELETE /api/students/{nis}
-     */
-    public function destroy(Request $request, string $nis)
-    {
-        $student = Student::findOrFail($nis);
-
-        // Hanya admin yang bisa hapus
-        if (! $request->user()->isAdmin()) {
+        try {
+            $student = $this->studentService->createStudent($request->validated());
             return response()->json([
-                'message' => 'Hanya admin yang dapat menghapus data siswa.',
-            ], Response::HTTP_FORBIDDEN);
+                'message' => 'Data siswa berhasil ditambahkan.',
+                'data' => $student,
+            ], Response::HTTP_CREATED);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
         }
-
-        $student->delete();
-
-        return response()->json([
-            'message' => 'Data siswa berhasil dihapus.',
-        ], Response::HTTP_OK);
     }
 
-    // =========================================================================
-    // PUBLIC METHODS - Dapat diakses tanpa autentikasi
-    // =========================================================================
+    // Menampilkan detail data siswa berdasarkan NIS dengan validasi akses wali kelas
+    public function show(Request $request, string $nis): JsonResponse
+    {
+        $student = Student::with('lastEditor')->findOrFail($nis);
 
-    /**
-     * List semua siswa untuk publik (dengan optional search)
-     *
-     * GET /api/public/students
-     *
-     * Query Parameters:
-     * - search: Optional - Cari berdasarkan NIS, NISN, atau nama (minimal 2 karakter)
-     * - class: Optional - Filter berdasarkan kelas (contoh: X-1)
-     * - per_page: Jumlah data per halaman (default: 20)
-     */
+        // Validasi: wali kelas hanya bisa lihat siswa di kelasnya
+        if ($request->user()->isWaliKelas()) {
+            if ($student->class !== $request->user()->class) {
+                return response()->json(['message' => 'Access denied'], 403);
+            }
+        }
+
+        return response()->json($student);
+    }
+
+    // Mengupdate data siswa berdasarkan NIS
+    public function update(UpdateStudentRequest $request, string $nis): JsonResponse
+    {
+        try {
+            $student = $this->studentService->updateStudent($nis, $request->validated());
+            return response()->json([
+                'message' => 'Data siswa berhasil diperbarui.',
+                'data' => $student->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
+        }
+    }
+
+    // Menghapus data siswa (hanya admin yang boleh)
+    public function destroy(Request $request, string $nis): JsonResponse
+    {
+        // Validasi: hanya admin yang bisa hapus data siswa
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $this->studentService->deleteStudent($nis);
+        return response()->json(['message' => 'Data siswa berhasil dihapus.']);
+    }
+
+    // Endpoint publik untuk mengambil daftar siswa dengan filter (tanpa autentikasi)
     public function publicIndex(Request $request)
     {
         $query = Student::query();
-
-        // Optional search filter
         if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('nis', 'like', "%{$search}%")
-                    ->orWhere('nisn', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%");
-            });
+            $query->search($request->search);
         }
-
-        // Optional class filter
         if ($request->filled('class')) {
             $query->byClass($request->input('class'));
         }
+        $query->orderBy('rombel_absen');
 
-        // Order by class dan name
-        $query->orderBy('rombel_absen')->orderBy('name');
+        $students = $query->paginate($request->input('per_page', 20));
 
-        // Pagination
-        $perPage = $request->input('per_page', 20);
-        $students = $query->paginate($perPage);
-
-        // Transform to public data
+        // Transform data siswa menjadi format publik yang aman
         $students->getCollection()->transform(function ($student) {
             return $this->getPublicStudentData($student);
         });
@@ -232,74 +107,35 @@ class StudentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data siswa berhasil diambil.',
-            'data' => $students,
-        ], Response::HTTP_OK);
+            'data' => $students
+        ]);
     }
 
-    /**
-     * Pencarian langsung ke detail siswa berdasarkan NIS/NISN
-     *
-     * GET /api/public/students/search
-     *
-     * Query Parameters:
-     * - q: NIS atau NISN yang dicari (required, minimal 3 karakter)
-     */
+    // Endpoint publik untuk pencarian siswa berdasarkan NIS atau NISN
     public function publicSearch(Request $request)
     {
-        $request->validate([
-            'q' => 'required|string|min:3|max:20',
-        ]);
+        $request->validate(['q' => 'required|string|min:3|max:20']);
+        $q = $request->input('q');
+        $student = Student::where('nis', $q)->orWhere('nisn', $q)->first();
 
-        $query = $request->input('q');
+        if (!$student) return response()->json(['success' => false, 'message' => 'Not found'], 404);
 
-        /** @var Student|null $student */
-        $student = Student::where('nis', $query)
-            ->orWhere('nisn', $query)
-            ->first();
-
-        if (! $student) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data siswa tidak ditemukan.',
-                'data' => null,
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        // Hanya tampilkan data publik (terbatas)
         return response()->json([
             'success' => true,
-            'message' => 'Data siswa ditemukan.',
-            'data' => $this->getPublicStudentData($student),
-        ], Response::HTTP_OK);
+            'message' => 'Found',
+            'data' => $this->getPublicStudentData($student)
+        ]);
     }
 
-    /**
-     * Menampilkan detail siswa untuk publik (data terbatas)
-     *
-     * GET /api/public/students/{nis}
-     */
+    // Endpoint publik untuk menampilkan detail siswa berdasarkan NIS
     public function publicShow(string $nis)
     {
-        /** @var Student|null $student */
         $student = Student::find($nis);
-
-        if (! $student) {
-            return response()->json([
-                'message' => 'Data siswa tidak ditemukan.',
-                'data' => null,
-            ], Response::HTTP_NOT_FOUND);
-        }
-
-        return response()->json([
-            'message' => 'Data siswa ditemukan.',
-            'data' => $this->getPublicStudentData($student),
-        ], Response::HTTP_OK);
+        if (!$student) return response()->json(['message' => 'Not found'], 404);
+        return response()->json(['message' => 'Found', 'data' => $this->getPublicStudentData($student)]);
     }
 
-    /**
-     * Filter data siswa untuk ditampilkan ke publik
-     * Hanya menampilkan data yang aman untuk publik
-     */
+    // Helper method untuk filter data siswa yang aman ditampilkan ke publik
     protected function getPublicStudentData(Student $student): array
     {
         return [
