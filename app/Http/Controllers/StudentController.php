@@ -95,9 +95,9 @@ class StudentController extends Controller
         if ($request->filled('class')) {
             $query->byClass($request->input('class'));
         }
-        $query->orderBy('rombel_absen');
+        $query->orderBy('name');
 
-        $students = $query->paginate($request->input('per_page', 20));
+        $students = $query->paginate($request->input('limit', $request->input('per_page', 10)));
 
         // Transform data siswa menjadi format publik yang aman
         $students->getCollection()->transform(function ($student) {
@@ -139,16 +139,12 @@ class StudentController extends Controller
     protected function getPublicStudentData(Student $student): array
     {
         return [
-            'nis' => $student->nis,
             'nisn' => $student->nisn,
             'name' => $student->name,
             'gender' => $student->gender,
             'gender_label' => $student->gender_label,
             'birth_place' => $student->birth_place,
-            'birth_date' => $student->birth_date->format('Y-m-d'),
-            'religion' => $student->religion,
-            'rombel_absen' => $student->rombel_absen,
-            'class' => $student->class,
+            'birth_date' => $student->birth_date ? $student->birth_date->format('d F Y') : null,
         ];
     }
 }

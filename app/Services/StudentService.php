@@ -11,7 +11,7 @@ class StudentService
     // Mengambil daftar siswa dengan filter (role-based access control)
     public function getStudents($filters)
     {
-        $query = Student::query();
+        $query = Student::with('alumni');
         $user = Auth::user();
 
         // Wali Kelas hanya bisa lihat siswa di kelasnya
@@ -36,9 +36,9 @@ class StudentService
             $query->byGender($filters['gender']);
         }
 
-        $query->orderBy('rombel_absen')->orderBy('name');
+        $query->orderBy('name');
 
-        return $query->paginate($filters['per_page'] ?? 15);
+        return $query->paginate($filters['limit'] ?? $filters['per_page'] ?? 10);
     }
 
     // Membuat student baru dengan tracking
@@ -63,6 +63,34 @@ class StudentService
             if ($student->class !== $user->class) {
                 throw new \Exception("Unauthorized to edit this student");
             }
+        }
+
+        // Handle Alumni logic
+        if (isset($data['status']) && $data['status'] === 'alumni') {
+            if (!\App\Models\Alumni::where('nis', $student->nis)->exists()) {
+                // Set rombel_absen to '-'
+                $data['rombel_absen'] = '-';
+                
+                // Create Alumni
+                $alumni = \App\Models\Alumni::create([
+                    'nim' => $student->nis,
+                    'name' => $student->name,
+                    'graduation_year' => date('Y'),
+                    'nis' => $student->nis,
+                ]);
+
+                // Create User
+                \App\Models\User::create([
+                    'name' => $alumni->name,
+                    'email' => $student->nis . '@school.sch.id',
+                    'password' => \Illuminate\Support\Facades\Hash::make($student->nis),
+                    'role' => 'alumni',
+                    'alumni' => $alumni->nim,
+                ]);
+            }
+            unset($data['status']);
+        } elseif (isset($data['status'])) {
+            unset($data['status']);
         }
 
         $data['last_edited_by'] = $user->id;

@@ -36,11 +36,11 @@ class AlumniController extends Controller
             $query->inUniversity();
         }
 
-        // Urutkan berdasarkan tahun kelulusan dan nama
-        $query->orderBy('graduation_year', 'desc')->orderBy('name');
+        // Urutkan berdasarkan nama
+        $query->orderBy('name');
 
-        // Pagination dengan default 15 item per page
-        $perPage = $request->input('per_page', 15);
+        // Pagination dengan default 10 item per page
+        $perPage = $request->input('limit', $request->input('per_page', 10));
         $alumni = $query->paginate($perPage);
 
         return response()->json($alumni, Response::HTTP_OK);
@@ -179,7 +179,7 @@ class AlumniController extends Controller
     // [PUBLIC] Endpoint publik untuk mengambil daftar alumni dengan filter
     public function publicIndex(Request $request)
     {
-        $query = Alumni::query();
+        $query = Alumni::query()->with('student');
 
         // Filter pencarian opsional berdasarkan NIM atau nama
         if ($request->filled('search')) {
@@ -224,7 +224,7 @@ class AlumniController extends Controller
         $query = $request->input('q');
 
         // Cari alumni berdasarkan NIM (pencarian persis)
-        $alumni = Alumni::where('nim', $query)->first();
+        $alumni = Alumni::with('student')->where('nim', $query)->first();
 
         if (! $alumni) {
             return response()->json([
@@ -246,7 +246,7 @@ class AlumniController extends Controller
     public function publicShow(string $nim)
     {
         // Cari alumni berdasarkan NIM
-        $alumni = Alumni::find($nim);
+        $alumni = Alumni::with('student')->find($nim);
 
         if (! $alumni) {
             return response()->json([
@@ -333,11 +333,14 @@ class AlumniController extends Controller
     {
         return [
             'nim' => $alumni->nim,
+            'nisn' => $alumni->student ? $alumni->student->nisn : null,
             'name' => $alumni->name,
             'graduation_year' => $alumni->graduation_year,
-            'university' => $alumni->university,
             'job_title' => $alumni->job_title,
-            // Email, phone, dan data kontak lain tidak ditampilkan untuk privasi
+            'instagram' => $alumni->instagram,
+            'linkedin' => $alumni->linkedin,
+            'facebook' => $alumni->facebook,
+            'website' => $alumni->website,
         ];
     }
 

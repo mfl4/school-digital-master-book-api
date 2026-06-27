@@ -49,8 +49,8 @@ class Student extends Model
         'last_edited_at',
     ];
 
-    // Atribut yang selalu disertakan dalam JSON (class, gender_label)
-    protected $appends = ['class', 'gender_label'];
+    // Atribut yang selalu disertakan dalam JSON (class, gender_label, status)
+    protected $appends = ['class', 'gender_label', 'status'];
 
     // Casting atribut ke tipe data tertentu
     protected function casts(): array
@@ -95,6 +95,12 @@ class Student extends Model
     {
         $parts = explode('-', $this->rombel_absen);
         return count($parts) >= 3 ? $parts[2] : '';
+    }
+
+    // Get status siswa (siswa / alumni)
+    public function getStatusAttribute(): string
+    {
+        return $this->relationLoaded('alumni') ? ($this->alumni ? 'alumni' : 'siswa') : 'siswa';
     }
 
     // === SCOPES ===

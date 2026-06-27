@@ -31,6 +31,7 @@ class UpdateStudentRequest extends FormRequest
             'address' => 'sometimes|string',
             'ijazah_number' => 'nullable|string|max:50',
             'rombel_absen' => ['sometimes', 'string', 'max:10', 'regex:/^(X|XI|XII)-\d+-\d+$/'],
+            'status' => 'sometimes|in:siswa,alumni',
         ];
     }
 }
