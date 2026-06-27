@@ -11,8 +11,13 @@ class GradeSummary extends Model
     protected $fillable = [
         'student_id',
         'semester',
+        'class_name',
         'total_score',
         'average_score',
+        'highest_score',
+        'highest_subject',
+        'lowest_score',
+        'lowest_subject',
         'calculated_at',
     ];
 
@@ -88,14 +93,38 @@ class GradeSummary extends Model
     // Hitung ulang ringkasan dari nilai (dipanggil oleh Observer)
     public function recalculate(): void
     {
+        // Calculate basic stats
         $stats = Grade::where('student_id', $this->student_id)
             ->where('semester', $this->semester)
             ->selectRaw('COALESCE(SUM(score), 0) as total, COALESCE(AVG(score), 0) as average')
             ->first();
 
+        // Get student's current class name
+        $student = Student::find($this->student_id);
+        $className = $student && $student->rombel_absen ? explode('-', $student->rombel_absen)[0] . '-' . explode('-', $student->rombel_absen)[1] : null;
+
+        // Find highest score and subject
+        $highestGrade = Grade::with('subject')
+            ->where('student_id', $this->student_id)
+            ->where('semester', $this->semester)
+            ->orderBy('score', 'desc')
+            ->first();
+
+        // Find lowest score and subject
+        $lowestGrade = Grade::with('subject')
+            ->where('student_id', $this->student_id)
+            ->where('semester', $this->semester)
+            ->orderBy('score', 'asc')
+            ->first();
+
         $this->update([
+            'class_name' => $className,
             'total_score' => $stats->total ?? 0,
             'average_score' => $stats->average ?? 0,
+            'highest_score' => $highestGrade ? $highestGrade->score : 0,
+            'highest_subject' => $highestGrade && $highestGrade->subject ? $highestGrade->subject->name : null,
+            'lowest_score' => $lowestGrade ? $lowestGrade->score : 0,
+            'lowest_subject' => $lowestGrade && $lowestGrade->subject ? $lowestGrade->subject->name : null,
             'calculated_at' => now(),
         ]);
     }

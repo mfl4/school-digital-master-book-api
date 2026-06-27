@@ -48,23 +48,15 @@ class GradeObserver
      */
     private function updateSummary(string $studentId, string $semester): void
     {
-        // Calculate total dan average dari grades
-        $stats = Grade::where('student_id', '=', $studentId)
-            ->where('semester', '=', $semester)
-            ->selectRaw('COALESCE(SUM(score), 0) as total, COALESCE(AVG(score), 0) as average')
-            ->first();
-
-        // Update or Create summary
-        GradeSummary::updateOrCreate(
+        // Get or Create summary
+        $summary = GradeSummary::firstOrCreate(
             [
                 'student_id' => $studentId,
                 'semester' => $semester,
-            ],
-            [
-                'total_score' => $stats->total ?? 0,
-                'average_score' => round($stats->average ?? 0, 2),
-                'calculated_at' => now(),
             ]
         );
+
+        // Call recalculate to update all stats including min/max and class
+        $summary->recalculate();
     }
 }
