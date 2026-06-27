@@ -17,7 +17,7 @@ Pastikan Anda telah menginstal PHP 8.4+, Composer, dan PostgreSQL.
 1. **Clone Repository**
 
     ```bash
-    git clone <repository-url>
+    git clone https://github.com/mfl4/school-digital-master-book-api.git
     cd school-digital-master-book-api
     ```
 
