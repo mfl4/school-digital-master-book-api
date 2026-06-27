@@ -45,7 +45,7 @@ class GradeService
             // Wali kelas hanya bisa lihat nilai siswa di kelasnya
             if ($user->role === 'wali_kelas' && $user->class) {
                 $query->whereHas('student', function ($q) use ($user) {
-                    $q->where('rombel_absen', 'like', $user->class . '%');
+                    $q->where('rombel_absen', 'like', $user->class . '-%');
                 });
             }
         }

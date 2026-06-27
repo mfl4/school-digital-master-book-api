@@ -23,4 +23,23 @@ class StoreGradeRequest extends FormRequest
             'score'      => 'required|numeric|min:0|max:100',
         ];
     }
+
+    // Custom validation for unique constraint
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $subjectId = $this->input('subject_id') ?? $this->user()->subject;
+            
+            if ($subjectId && $this->input('student_id') && $this->input('semester')) {
+                $exists = \App\Models\Grade::where('student_id', $this->input('student_id'))
+                    ->where('subject_id', $subjectId)
+                    ->where('semester', $this->input('semester'))
+                    ->exists();
+
+                if ($exists) {
+                    $validator->errors()->add('student_id', 'Nilai untuk siswa pada mata pelajaran dan semester ini sudah ada.');
+                }
+            }
+        });
+    }
 }
