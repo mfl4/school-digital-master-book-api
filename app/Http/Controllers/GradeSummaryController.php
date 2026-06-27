@@ -17,6 +17,8 @@ class GradeSummaryController extends Controller
         $query = GradeSummary::with(['student']);
 
         // Filter berdasarkan siswa
+        if ($request->filled('student')) {
+            $query->byStudent($request->student);
         }
 
         // Filter berdasarkan semester
