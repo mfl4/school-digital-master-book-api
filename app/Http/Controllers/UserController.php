@@ -35,11 +35,20 @@ class UserController extends Controller
         // Urutkan berdasarkan nama
         $query->orderBy('name');
 
-        // Pagination dengan default 15 items per page
-        $perPage = $request->input('per_page', 15);
+        // Pagination dengan default 10 items per page
+        $perPage = $request->input('limit', $request->input('per_page', 10));
         $users = $query->paginate($perPage);
 
-        return response()->json($users, Response::HTTP_OK);
+        return response()->json([
+            'data' => $users,
+            'role_counts' => [
+                'total' => User::count(),
+                'admin' => User::where('role', 'admin')->count(),
+                'guru' => User::where('role', 'guru')->count(),
+                'wali_kelas' => User::where('role', 'wali_kelas')->count(),
+                'alumni' => User::where('role', 'alumni')->count(),
+            ]
+        ], Response::HTTP_OK);
     }
 
     // Menambahkan user baru dengan role dan field spesifik sesuai role

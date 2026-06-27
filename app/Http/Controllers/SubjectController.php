@@ -12,8 +12,15 @@ class SubjectController extends Controller
     // Mengambil daftar semua mata pelajaran dengan pagination
     public function index(Request $request)
     {
+        $query = Subject::query();
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'ilike', "%{$search}%")
+                  ->orWhere('code', 'ilike', "%{$search}%");
+        }
+        
         return response()->json(
-            Subject::orderBy('name')->paginate($request->input('limit', 10)),
+            $query->orderBy('name')->paginate($request->input('limit', 10)),
             Response::HTTP_OK
         );
     }
