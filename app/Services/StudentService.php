@@ -51,7 +51,7 @@ class StudentService
 
         $classroomId = $data['classroom_id'] ?? null;
         $academicYearId = $data['academic_year_id'] ?? \App\Models\AcademicYear::orderBy('name', 'desc')->value('id');
-        
+
         unset($data['classroom_id']);
         unset($data['academic_year_id']);
 
@@ -88,7 +88,7 @@ class StudentService
             // Handle Alumni logic
             if (isset($data['status']) && $data['status'] === 'alumni') {
                 if (!\App\Models\Alumni::where('nis', $student->nis)->exists()) {
-                    
+
                     // Create Alumni aman (hindari duplikat di NIM)
                     $alumni = \App\Models\Alumni::firstOrCreate(
                         ['nim' => $student->nis],
@@ -102,7 +102,7 @@ class StudentService
                     // Create User aman (hindari duplicate email constraint error)
                     $email = $student->nis . '@school.sch.id';
                     $existingUser = \App\Models\User::where('email', $email)->orWhere('alumni', $alumni->nim)->first();
-                    
+
                     if (!$existingUser) {
                         \App\Models\User::create([
                             'name' => $alumni->name,
@@ -144,7 +144,7 @@ class StudentService
                     ->where('student_id', $student->nis)
                     ->where('academic_year_id', $academicYearId)
                     ->delete();
-                
+
                 // Add new mapping
                 $student->classHistories()->attach($classroomId, ['academic_year_id' => $academicYearId]);
             }

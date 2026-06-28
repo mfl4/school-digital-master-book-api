@@ -50,7 +50,7 @@ class Student extends Model
 
     // Atribut yang selalu disertakan dalam JSON (class, gender_label, status)
     protected $appends = ['class', 'gender_label', 'status'];
-    
+
     protected $with = ['classHistories']; // Eager load class history
 
     // Casting atribut ke tipe data tertentu
