@@ -17,7 +17,11 @@ class UpdateGradeRequest extends FormRequest
     public function rules()
     {
         return [
-            'score' => 'required|numeric|min:0|max:100',
+            'student_id' => 'sometimes|exists:students,nis',
+            'subject_id' => 'sometimes|exists:subjects,id',
+            'academic_year_id' => 'sometimes|exists:academic_years,id',
+            'semester'   => 'sometimes|in:odd,even',
+            'score'      => 'sometimes|numeric|min:0|max:100',
         ];
     }
 }

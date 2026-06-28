@@ -9,6 +9,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\GradeSummaryController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ClassroomController;
+use App\Http\Controllers\AcademicYearController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +71,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // List siswa dan alumni bisa diakses Admin, Guru, dan Wali Kelas
     Route::middleware('role:admin|guru|wali_kelas')->group(function () {
+        Route::get('academic-years', [AcademicYearController::class, 'index'])->name('academic-years.index');
+        Route::get('classrooms', [ClassroomController::class, 'index'])->name('classrooms.index');
         Route::get('students', [StudentController::class, 'index'])->name('students.index');
         Route::get('alumni', [AlumniController::class, 'index'])->name('alumni.index');
     });
@@ -99,7 +103,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         // CRUD Alumni (Akses Penuh)
-        Route::post('alumni', [AlumniController::class, 'store'])->name('alumni.store');
         Route::get('alumni/{alumnus}', [AlumniController::class, 'show'])->name('alumni.show');
         Route::patch('alumni/{alumnus}', [AlumniController::class, 'update'])->name('alumni.update');
         Route::delete('alumni/{alumnus}', [AlumniController::class, 'destroy'])->name('alumni.destroy');
@@ -113,7 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Ringkasan Nilai (Read-only untuk admin)
         Route::get('grade-summaries', [GradeSummaryController::class, 'index'])->name('grade-summaries.index');
-        Route::get('grade-summaries/{student}/{semester}', [GradeSummaryController::class, 'show'])
+        Route::get('grade-summaries/{student}/{academic_year_id}/{semester}', [GradeSummaryController::class, 'show'])
             ->name('grade-summaries.show')
             ->where('semester', '.*');
 
@@ -157,7 +160,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Wali kelas bisa lihat summaries siswa di kelasnya
         Route::get('wali/grade-summaries', [GradeSummaryController::class, 'classSummaries'])->name('summaries.index');
-        Route::get('wali/grade-summaries/{student}/{semester}', [GradeSummaryController::class, 'show'])->name('summaries.show');
+        Route::get('wali/grade-summaries/{student}/{academic_year_id}/{semester}', [GradeSummaryController::class, 'show'])->name('summaries.show');
     });
 
     // ========================================================================

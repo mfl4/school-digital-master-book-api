@@ -60,7 +60,7 @@ class UserController extends Controller
             'password' => 'required|string|min:8',
             'role' => 'required|in:' . implode(',', User::ROLES),
             'subject' => 'nullable|integer|exists:subjects,id|required_if:role,guru',
-            'class' => 'nullable|string|max:10|required_if:role,wali_kelas',
+            'classroom_id' => 'nullable|integer|exists:classrooms,id|required_if:role,wali_kelas',
             'alumni' => 'nullable|string|max:20|exists:alumni,nim|required_if:role,alumni',
         ]);
 
@@ -99,7 +99,7 @@ class UserController extends Controller
             'password' => 'sometimes|string|min:8',
             'role' => 'sometimes|in:' . implode(',', User::ROLES),
             'subject' => 'nullable|integer|exists:subjects,id',
-            'class' => 'nullable|string|max:10',
+            'classroom_id' => 'nullable|integer|exists:classrooms,id',
             'alumni' => 'nullable|string|max:20|exists:alumni,nim',
         ]);
 
@@ -149,12 +149,12 @@ class UserController extends Controller
         switch ($role) {
             case 'admin':
                 $data['subject'] = null;
-                $data['class'] = null;
+                $data['classroom_id'] = null;
                 $data['alumni'] = null;
                 break;
 
             case 'guru':
-                $data['class'] = null;
+                $data['classroom_id'] = null;
                 $data['alumni'] = null;
                 break;
 
@@ -165,7 +165,7 @@ class UserController extends Controller
 
             case 'alumni':
                 $data['subject'] = null;
-                $data['class'] = null;
+                $data['classroom_id'] = null;
                 break;
         }
 

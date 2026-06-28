@@ -24,7 +24,7 @@ class AuthController extends Controller
             $user = Auth::user();
 
             // Muat relasi subject dan alumni untuk user yang berhasil login
-            $user->load('subjectRelation', 'alumniRelation');
+            $user->load('subjectRelation', 'alumniRelation', 'classroom');
 
             return response()->json([
                 'success' => true,
@@ -35,7 +35,7 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'role' => $user->role,
                     'subject' => $user->subjectRelation,
-                    'class' => $user->class,
+                    'class' => $user->classroom ? $user->classroom->name : null,
                     'alumni' => $user->alumniRelation,
                 ]
             ]);
@@ -69,7 +69,7 @@ class AuthController extends Controller
         }
 
         // Muat relasi untuk ditampilkan di frontend
-        $user->load('subjectRelation', 'alumniRelation');
+        $user->load('subjectRelation', 'alumniRelation', 'classroom');
         
         return response()->json([
             'message' => 'Data user berhasil diambil',
@@ -79,7 +79,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
                 'subject' => $user->subjectRelation,
-                'class' => $user->class,
+                'class' => $user->classroom ? $user->classroom->name : null,
                 'alumni' => $user->alumniRelation,
             ]
         ]);

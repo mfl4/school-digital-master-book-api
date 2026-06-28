@@ -29,7 +29,8 @@ class StoreStudentRequest extends FormRequest
             'father_name' => 'required|string|max:100',
             'address' => 'required|string',
             'ijazah_number' => 'nullable|string|max:50',
-            'rombel_absen' => ['required', 'string', 'max:10', 'regex:/^(X|XI|XII)-\d+-\d+$/'],
+            'classroom_id' => 'nullable|exists:classrooms,id',
+            'status' => 'nullable|string|in:siswa,alumni',
         ];
     }
 }

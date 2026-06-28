@@ -19,7 +19,8 @@ class StoreGradeRequest extends FormRequest
         return [
             'student_id' => 'required|exists:students,nis',
             'subject_id' => 'sometimes|exists:subjects,id',
-            'semester'   => 'required|string',
+            'academic_year_id' => 'required|exists:academic_years,id',
+            'semester'   => 'required|in:odd,even',
             'score'      => 'required|numeric|min:0|max:100',
         ];
     }
@@ -30,9 +31,10 @@ class StoreGradeRequest extends FormRequest
         $validator->after(function ($validator) {
             $subjectId = $this->input('subject_id') ?? $this->user()->subject;
             
-            if ($subjectId && $this->input('student_id') && $this->input('semester')) {
+            if ($subjectId && $this->input('student_id') && $this->input('academic_year_id') && $this->input('semester')) {
                 $exists = \App\Models\Grade::where('student_id', $this->input('student_id'))
                     ->where('subject_id', $subjectId)
+                    ->where('academic_year_id', $this->input('academic_year_id'))
                     ->where('semester', $this->input('semester'))
                     ->exists();
 

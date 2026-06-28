@@ -134,7 +134,7 @@ class GradeController extends Controller
 
         // Validasi: siswa harus di kelas yang diampu wali kelas
         $student = Student::where('nis', $request->student_id)->first();
-        if (!$student || $student->class !== $user->class) {
+        if (!$student || $student->classroom_id !== $user->classroom_id) {
             return response()->json([
                 'success' => false,
                 'error' => 'Anda hanya bisa menginput nilai untuk siswa di kelas Anda',
@@ -154,7 +154,7 @@ class GradeController extends Controller
 
         // Validasi: nilai harus milik siswa di kelas yang diampu
         $student = Student::where('nis', $grade->student_id)->first();
-        if (!$student || $student->class !== $user->class) {
+        if (!$student || $student->classroom_id !== $user->classroom_id) {
             return response()->json([
                 'success' => false,
                 'error' => 'Anda hanya bisa mengubah nilai siswa di kelas Anda',
@@ -174,7 +174,7 @@ class GradeController extends Controller
 
         // Validasi: nilai harus milik siswa di kelas yang diampu
         $student = Student::where('nis', $grade->student_id)->first();
-        if (!$student || $student->class !== $user->class) {
+        if (!$student || $student->classroom_id !== $user->classroom_id) {
             return response()->json([
                 'success' => false,
                 'error' => 'Anda hanya bisa menghapus nilai siswa di kelas Anda',

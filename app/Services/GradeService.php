@@ -28,10 +28,18 @@ class GradeService
             $query->where('semester', $filters['semester']);
         }
 
+        // Filter berdasarkan tahun ajaran
+        if (isset($filters['academic_year_id'])) {
+            $query->where('academic_year_id', $filters['academic_year_id']);
+        }
+
         // Filter berdasarkan kelas
         if (isset($filters['class'])) {
-            $query->whereHas('student', function ($q) use ($filters) {
-                $q->where('rombel_absen', 'like', $filters['class'] . '%');
+            $query->whereHas('student.classHistories', function ($q) use ($filters) {
+                $q->where('classrooms.id', $filters['class']);
+                if (isset($filters['academic_year_id'])) {
+                    $q->where('student_classrooms.academic_year_id', $filters['academic_year_id']);
+                }
             });
         }
 
@@ -43,9 +51,12 @@ class GradeService
                 $query->where('subject_id', $user->subject);
             }
             // Wali kelas hanya bisa lihat nilai siswa di kelasnya
-            if ($user->role === 'wali_kelas' && $user->class) {
-                $query->whereHas('student', function ($q) use ($user) {
-                    $q->where('rombel_absen', 'like', $user->class . '-%');
+            if ($user->role === 'wali_kelas' && $user->classroom_id) {
+                $query->whereHas('student.classHistories', function ($q) use ($user, $filters) {
+                    $q->where('classrooms.id', $user->classroom_id);
+                    if (isset($filters['academic_year_id'])) {
+                        $q->where('student_classrooms.academic_year_id', $filters['academic_year_id']);
+                    }
                 });
             }
         }

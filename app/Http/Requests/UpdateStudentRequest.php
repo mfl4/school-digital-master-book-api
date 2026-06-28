@@ -30,8 +30,8 @@ class UpdateStudentRequest extends FormRequest
             'father_name' => 'sometimes|string|max:100',
             'address' => 'sometimes|string',
             'ijazah_number' => 'nullable|string|max:50',
-            'rombel_absen' => ['sometimes', 'string', 'max:10', 'regex:/^(X|XI|XII)-\d+-\d+$/'],
-            'status' => 'sometimes|in:siswa,alumni',
+            'classroom_id' => 'nullable|exists:classrooms,id',
+            'status' => 'nullable|string|in:siswa,alumni',
         ];
     }
 }

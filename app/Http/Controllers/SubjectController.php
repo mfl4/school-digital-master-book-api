@@ -19,8 +19,16 @@ class SubjectController extends Controller
                   ->orWhere('code', 'ilike', "%{$search}%");
         }
         
+        $limit = $request->input('limit', 10);
+        
+        if ($limit === 'all') {
+            return response()->json([
+                'data' => $query->orderBy('name')->get()
+            ], Response::HTTP_OK);
+        }
+
         return response()->json(
-            $query->orderBy('name')->paginate($request->input('limit', 10)),
+            $query->orderBy('name')->paginate((int) $limit),
             Response::HTTP_OK
         );
     }

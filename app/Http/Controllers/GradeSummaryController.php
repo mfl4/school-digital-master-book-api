@@ -26,6 +26,11 @@ class GradeSummaryController extends Controller
             $query->bySemester($request->semester);
         }
 
+        // Filter berdasarkan tahun ajaran
+        if ($request->filled('academic_year_id')) {
+            $query->byAcademicYear($request->academic_year_id);
+        }
+
         // Filter berdasarkan status kelulusan
         if ($request->filled('passing') && $request->boolean('passing')) {
             $query->passing();
@@ -41,10 +46,11 @@ class GradeSummaryController extends Controller
     }
 
     // Menampilkan detail summary untuk student tertentu di semester tertentu
-    public function show(string $studentId, string $semester): JsonResponse
+    public function show(string $studentId, int $academicYearId, string $semester): JsonResponse
     {
         $summary = GradeSummary::with(['student', 'grades.subject'])
             ->where('student_id', '=', $studentId)
+            ->where('academic_year_id', '=', $academicYearId)
             ->where('semester', '=', $semester)
             ->firstOrFail();
 
@@ -66,6 +72,7 @@ class GradeSummaryController extends Controller
                     'name' => $summary->student->name,
                     'class' => $summary->student->class,
                 ],
+                'academic_year_id' => $summary->academic_year_id,
                 'semester' => $summary->semester,
                 'total_score' => $summary->total_score,
                 'average_score' => $summary->average_score,
@@ -91,11 +98,16 @@ class GradeSummaryController extends Controller
 
         // Ambil summary untuk siswa di kelas wali kelas
         $query = GradeSummary::with(['student'])
-            ->byClass($user->class);
+            ->byClass($user->classroom_id);
 
         // Filter berdasarkan semester
         if ($request->filled('semester')) {
             $query->bySemester($request->semester);
+        }
+
+        // Filter berdasarkan tahun ajaran
+        if ($request->filled('academic_year_id')) {
+            $query->byAcademicYear($request->academic_year_id);
         }
 
         // Filter berdasarkan status kelulusan

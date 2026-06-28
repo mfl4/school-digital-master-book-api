@@ -51,7 +51,8 @@ class StudentController extends Controller
 
         // Validasi: wali kelas hanya bisa lihat siswa di kelasnya
         if ($request->user()->isWaliKelas()) {
-            if ($student->class !== $request->user()->class) {
+            $isAuthorized = $student->classHistories()->where('classrooms.id', $request->user()->classroom_id)->exists();
+            if (!$isAuthorized) {
                 return response()->json(['message' => 'Access denied'], 403);
             }
         }
@@ -92,8 +93,8 @@ class StudentController extends Controller
         if ($request->filled('search')) {
             $query->search($request->search);
         }
-        if ($request->filled('class')) {
-            $query->byClass($request->input('class'));
+        if ($request->filled('classroom_id')) {
+            $query->byClass($request->input('classroom_id'));
         }
         $query->orderBy('name');
 

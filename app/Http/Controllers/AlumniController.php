@@ -45,44 +45,6 @@ class AlumniController extends Controller
 
         return response()->json($alumni, Response::HTTP_OK);
     }
-
-    // Menambahkan data alumni baru (hanya admin)
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'nim' => 'required|string|max:20|unique:alumni,nim',
-            'name' => 'required|string|max:100',
-            'graduation_year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
-            'university' => 'nullable|string|max:100',
-            'job_title' => 'nullable|string|max:100',
-            'job_start' => 'nullable|date|required_with:job_title',
-            'job_end' => 'nullable|date|after:job_start',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:100',
-            'linkedin' => 'nullable|url|max:255',
-            'instagram' => 'nullable|string|max:100',
-            'facebook' => 'nullable|string|max:255',
-            'website' => 'nullable|url|max:255',
-            'nis' => 'nullable|string|max:20|exists:students,nis',
-        ]);
-
-        // Normalisasi input: ubah string kosong menjadi null untuk PostgreSQL
-        $validated = $this->normalizeInput($validated);
-
-        // Tambahkan tracking info untuk audit
-        $validated['updated_by'] = $request->user()->id;
-        $validated['updated_ip'] = $request->ip();
-        $validated['updated_at'] = now();
-        $validated['created_at'] = now();
-
-        $alumni = Alumni::create($validated);
-
-        return response()->json([
-            'message' => 'Data alumni berhasil ditambahkan.',
-            'data' => $alumni,
-        ], Response::HTTP_CREATED);
-    }
-
     // Menampilkan detail alumni berdasarkan NIM dengan validasi akses
     public function show(Request $request, string $nim)
     {
@@ -122,7 +84,16 @@ class AlumniController extends Controller
             'graduation_year' => 'sometimes|integer|min:1900|max:'.(date('Y') + 1),
             'university' => 'nullable|string|max:100',
             'job_title' => 'nullable|string|max:100',
-            'job_start' => 'nullable|date',
+            'job_start' => [
+                'nullable',
+                'date',
+                function ($attribute, $value, $fail) use ($request, $alumni) {
+                    $gradYear = $request->input('graduation_year') ?? $alumni->graduation_year;
+                    if (substr($value, 0, 4) < $gradYear) {
+                        $fail('Tanggal mulai kerja harus pada atau setelah tahun lulus (' . $gradYear . ').');
+                    }
+                },
+            ],
             'job_end' => 'nullable|date|after:job_start',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
@@ -299,7 +270,15 @@ class AlumniController extends Controller
         $validated = $request->validate([
             'university' => 'nullable|string|max:100',
             'job_title' => 'nullable|string|max:100',
-            'job_start' => 'nullable|date',
+            'job_start' => [
+                'nullable',
+                'date',
+                function ($attribute, $value, $fail) use ($alumni) {
+                    if (substr($value, 0, 4) < $alumni->graduation_year) {
+                        $fail('Tanggal mulai kerja harus pada atau setelah tahun lulus (' . $alumni->graduation_year . ').');
+                    }
+                },
+            ],
             'job_end' => 'nullable|date|after:job_start',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
