@@ -19,7 +19,7 @@ class GradeObserver
      */
     public function created(Grade $grade): void
     {
-        $this->updateSummary($grade->student_id, $grade->semester);
+        $this->updateSummary($grade->student_id, $grade->academic_year_id, $grade->semester);
     }
 
     /**
@@ -28,7 +28,7 @@ class GradeObserver
      */
     public function updated(Grade $grade): void
     {
-        $this->updateSummary($grade->student_id, $grade->semester);
+        $this->updateSummary($grade->student_id, $grade->academic_year_id, $grade->semester);
     }
 
     /**
@@ -37,7 +37,7 @@ class GradeObserver
      */
     public function deleted(Grade $grade): void
     {
-        $this->updateSummary($grade->student_id, $grade->semester);
+        $this->updateSummary($grade->student_id, $grade->academic_year_id, $grade->semester);
     }
 
     /**
@@ -46,12 +46,13 @@ class GradeObserver
      * @param string $studentId NIS siswa
      * @param string $semester Semester
      */
-    private function updateSummary(string $studentId, string $semester): void
+    private function updateSummary(string $studentId, int $academicYearId, string $semester): void
     {
         // Get or Create summary
         $summary = GradeSummary::firstOrCreate(
             [
                 'student_id' => $studentId,
+                'academic_year_id' => $academicYearId,
                 'semester' => $semester,
             ]
         );

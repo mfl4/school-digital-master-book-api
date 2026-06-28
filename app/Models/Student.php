@@ -43,7 +43,6 @@ class Student extends Model
         'father_name',
         'address',
         'ijazah_number',
-        'rombel_absen',
         'last_edited_by',
         'last_edited_ip',
         'last_edited_at',
@@ -51,6 +50,8 @@ class Student extends Model
 
     // Atribut yang selalu disertakan dalam JSON (class, gender_label, status)
     protected $appends = ['class', 'gender_label', 'status'];
+    
+    protected $with = ['classHistories']; // Eager load class history
 
     // Casting atribut ke tipe data tertentu
     protected function casts(): array
@@ -75,6 +76,15 @@ class Student extends Model
         return $this->hasOne(Alumni::class, 'nis', 'nis');
     }
 
+    // Relasi ke Classroom History
+    public function classHistories()
+    {
+        return $this->belongsToMany(Classroom::class, 'student_classrooms', 'student_id', 'classroom_id', 'nis')
+                    ->withPivot('academic_year_id', 'id')
+                    ->orderByPivot('id', 'desc')
+                    ->withTimestamps();
+    }
+
     // === ACCESSORS & MUTATORS ===
 
     // Get label jenis kelamin (L -> Laki-laki, P -> Perempuan)
@@ -83,18 +93,11 @@ class Student extends Model
         return self::GENDERS[$this->gender] ?? $this->gender;
     }
 
-    // Get kelas dari rombel_absen (X-1-01 -> X-1)
-    public function getClassAttribute(): string
+    // Get kelas dari relasi classHistories (mengambil kelas terbaru/terakhir yang diassign)
+    public function getClassAttribute(): ?string
     {
-        $parts = explode('-', $this->rombel_absen);
-        return count($parts) >= 2 ? $parts[0] . '-' . $parts[1] : $this->rombel_absen;
-    }
-
-    // Get nomor absen dari rombel_absen (X-1-01 -> 01)
-    public function getAbsenAttribute(): string
-    {
-        $parts = explode('-', $this->rombel_absen);
-        return count($parts) >= 3 ? $parts[2] : '';
+        $latestClass = $this->classHistories->first();
+        return $latestClass ? $latestClass->name : null;
     }
 
     // Get status siswa (siswa / alumni)
@@ -105,10 +108,12 @@ class Student extends Model
 
     // === SCOPES ===
 
-    // Filter berdasarkan kelas (X-1, XI-2, dll)
-    public function scopeByClass($query, string $class)
+    // Filter berdasarkan kelas (ID kelas) - mencari history kelas
+    public function scopeByClass($query, $classId)
     {
-        return $query->where('rombel_absen', 'LIKE', $class . '-%');
+        return $query->whereHas('classHistories', function ($q) use ($classId) {
+            $q->where('classrooms.id', $classId);
+        });
     }
 
     // Filter berdasarkan jenis kelamin

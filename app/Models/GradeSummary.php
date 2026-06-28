@@ -10,6 +10,7 @@ class GradeSummary extends Model
     // Field yang boleh diisi secara mass assignment
     protected $fillable = [
         'student_id',
+        'academic_year_id',
         'semester',
         'class_name',
         'total_score',
@@ -38,10 +39,17 @@ class GradeSummary extends Model
         return $this->belongsTo(Student::class, 'student_id', 'nis');
     }
 
+    // Relasi ke AcademicYear
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYear::class);
+    }
+
     // Relasi ke Grades (untuk mendapatkan detail nilai per mapel)
     public function grades()
     {
         return $this->hasMany(Grade::class, 'student_id', 'student_id')
+            ->where('grades.academic_year_id', '=', $this->academic_year_id)
             ->where('grades.semester', '=', $this->semester);
     }
 
@@ -68,6 +76,12 @@ class GradeSummary extends Model
         return $query->where('semester', $semester);
     }
 
+    // Filter berdasarkan academic_year_id
+    public function scopeByAcademicYear($query, int $academicYearId)
+    {
+        return $query->where('academic_year_id', $academicYearId);
+    }
+
     // Filter berdasarkan student
     public function scopeByStudent($query, string $nis)
     {
@@ -80,11 +94,12 @@ class GradeSummary extends Model
         return $query->where('average_score', '>=', 75);
     }
 
-    // Filter berdasarkan kelas (dari student)
-    public function scopeByClass($query, string $class)
+    // Filter berdasarkan kelas (dari student's history at that academic year)
+    public function scopeByClass($query, $classId)
     {
-        return $query->whereHas('student', function ($q) use ($class) {
-            $q->where('rombel_absen', 'LIKE', $class . '-%');
+        return $query->whereHas('student.classHistories', function ($q) use ($classId) {
+            $q->where('classrooms.id', $classId)
+              ->whereColumn('student_classrooms.academic_year_id', 'grade_summaries.academic_year_id');
         });
     }
 
@@ -95,17 +110,19 @@ class GradeSummary extends Model
     {
         // Calculate basic stats
         $stats = Grade::where('student_id', $this->student_id)
+            ->where('academic_year_id', $this->academic_year_id)
             ->where('semester', $this->semester)
             ->selectRaw('COALESCE(SUM(score), 0) as total, COALESCE(AVG(score), 0) as average')
             ->first();
 
         // Get student's current class name
-        $student = Student::find($this->student_id);
-        $className = $student && $student->rombel_absen ? explode('-', $student->rombel_absen)[0] . '-' . explode('-', $student->rombel_absen)[1] : null;
+        $student = Student::with('classroom')->find($this->student_id);
+        $className = $student && $student->classroom ? $student->classroom->name : null;
 
         // Find highest score and subject
         $highestGrade = Grade::with('subject')
             ->where('student_id', $this->student_id)
+            ->where('academic_year_id', $this->academic_year_id)
             ->where('semester', $this->semester)
             ->orderBy('score', 'desc')
             ->first();
@@ -113,6 +130,7 @@ class GradeSummary extends Model
         // Find lowest score and subject
         $lowestGrade = Grade::with('subject')
             ->where('student_id', $this->student_id)
+            ->where('academic_year_id', $this->academic_year_id)
             ->where('semester', $this->semester)
             ->orderBy('score', 'asc')
             ->first();

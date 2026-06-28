@@ -26,6 +26,7 @@ class Grade extends Model
     protected $fillable = [
         'student_id',
         'subject_id',
+        'academic_year_id',
         'semester',
         'score',
         'last_edited_by',
@@ -62,6 +63,12 @@ class Grade extends Model
         return $this->belongsTo(User::class, 'last_edited_by');
     }
 
+    // Relasi ke AcademicYear
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYear::class);
+    }
+
     // === ACCESSORS ===
 
     // Get grade letter (A/B/C/D/E) berdasarkan score
@@ -89,6 +96,12 @@ class Grade extends Model
         return $query->where('semester', $semester);
     }
 
+    // Filter berdasarkan tahun ajaran
+    public function scopeByAcademicYear($query, int $academicYearId)
+    {
+        return $query->where('academic_year_id', $academicYearId);
+    }
+
     // Filter berdasarkan student
     public function scopeByStudent($query, string $nis)
     {
@@ -101,18 +114,20 @@ class Grade extends Model
         return $query->where('subject_id', $subjectId);
     }
 
-    // Filter berdasarkan student dan semester
-    public function scopeByStudentAndSemester($query, string $nis, string $semester)
+    // Filter berdasarkan student, academic_year, dan semester
+    public function scopeByStudentTerm($query, string $nis, int $academicYearId, string $semester)
     {
         return $query->where('student_id', $nis)
+            ->where('academic_year_id', $academicYearId)
             ->where('semester', $semester);
     }
 
-    // Filter berdasarkan kelas (dari rombel_absen siswa)
-    public function scopeByClass($query, string $class)
+    // Filter berdasarkan kelas (dari history classroom siswa di tahun ajaran tersebut)
+    public function scopeByClass($query, $classId)
     {
-        return $query->whereHas('student', function ($q) use ($class) {
-            $q->where('rombel_absen', 'LIKE', $class . '-%');
+        return $query->whereHas('student.classHistories', function ($q) use ($classId) {
+            $q->where('classrooms.id', $classId)
+              ->whereColumn('student_classrooms.academic_year_id', 'grades.academic_year_id');
         });
     }
 }

@@ -26,7 +26,7 @@ class User extends Authenticatable
         'password',
         'role',
         'subject',
-        'class',
+        'classroom_id',
         'alumni',
     ];
 
@@ -88,10 +88,15 @@ class User extends Authenticatable
         return $this->belongsTo(Alumni::class, 'alumni', 'nim');
     }
 
+    // Relasi ke Classroom (untuk wali_kelas)
+    public function classroom()
+    {
+        return $this->belongsTo(Classroom::class, 'classroom_id');
+    }
+
     // Relasi ke Students (untuk wali_kelas) - akses siswa di kelasnya 
     public function students()
     {
-        return $this->hasMany(Student::class, 'rombel_absen', 'class')
-            ->where('rombel_absen', 'LIKE', $this->class . '-%');
+        return $this->hasMany(Student::class, 'classroom_id', 'classroom_id');
     }
 }
