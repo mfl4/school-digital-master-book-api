@@ -31,11 +31,11 @@ class GradeSeeder extends Seeder
         $subjects = Subject::all();
         $adminUser = User::where('role', 'admin')->first();
 
+        $academicYears = \App\Models\AcademicYear::all();
         // Daftar semester
         $semesters = [
-            'Ganjil 2023/2024',
-            'Genap 2023/2024',
-            'Ganjil 2024/2025',
+            'odd',
+            'even',
         ];
 
         // Counter untuk tracking progress
@@ -43,19 +43,22 @@ class GradeSeeder extends Seeder
 
         // Generate grades untuk setiap kombinasi
         foreach ($students as $student) {
-            foreach ($semesters as $semester) {
-                foreach ($subjects as $subject) {
-                    Grade::create([
-                        'student_id' => $student->nis,
-                        'subject_id' => $subject->id,
-                        'semester' => $semester,
-                        'score' => rand(70, 100), // Random score antara 70-100
-                        'last_edited_by' => $adminUser?->id,
-                        'last_edited_ip' => '127.0.0.1',
-                        'last_edited_at' => now(),
-                    ]);
-                    
-                    $totalGrades++;
+            foreach ($academicYears as $year) {
+                foreach ($semesters as $semester) {
+                    foreach ($subjects as $subject) {
+                        Grade::create([
+                            'student_id' => $student->nis,
+                            'subject_id' => $subject->id,
+                            'academic_year_id' => $year->id,
+                            'semester' => $semester,
+                            'score' => rand(70, 100), // Random score antara 70-100
+                            'last_edited_by' => $adminUser?->id,
+                            'last_edited_ip' => '127.0.0.1',
+                            'last_edited_at' => now(),
+                        ]);
+                        
+                        $totalGrades++;
+                    }
                 }
             }
         }

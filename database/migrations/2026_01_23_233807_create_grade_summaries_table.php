@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  * Tabel ini akan di-update otomatis via Observer ketika ada perubahan di tabel grades.
  * 
  * Fitur:
- * - Composite unique: student_id + semester (satu summary per siswa per semester)
+ * - Composite unique: student_id + academic_year_id + semester (satu summary per siswa per tahun ajaran & semester)
  * - Auto-calculate via Observer: total_score, average_score
  * - Timestamp calculated_at untuk tracking kapan terakhir di-calculate
  */
@@ -30,12 +30,27 @@ return new class extends Migration
                 ->comment('NIS siswa - foreign key ke students.nis');
             
             // Data Summary
-            $table->string('semester', 50)
-                ->comment('Semester (misal: Ganjil 2024/2025)');
+            $table->foreignId('academic_year_id')
+                ->constrained('academic_years')->cascadeOnDelete()
+                ->comment('Tahun Ajaran');
+            $table->enum('semester', ['odd', 'even'])
+                ->comment('Semester ganjil/genap');
             $table->integer('total_score')->default(0)
                 ->comment('Total nilai semua mata pelajaran');
             $table->decimal('average_score', 5, 2)->default(0.00)
                 ->comment('Rata-rata nilai (2 digit desimal)');
+            
+            // Tambahan dari merged migration
+            $table->string('class_name', 20)->nullable()
+                ->comment('Kelas siswa saat semester ini berlangsung');
+            $table->smallInteger('highest_score')->default(0)
+                ->comment('Nilai tertinggi pada semester ini');
+            $table->string('highest_subject', 100)->nullable()
+                ->comment('Nama mapel dengan nilai tertinggi');
+            $table->smallInteger('lowest_score')->default(0)
+                ->comment('Nilai terendah pada semester ini');
+            $table->string('lowest_subject', 100)->nullable()
+                ->comment('Nama mapel dengan nilai terendah');
             
             // Tracking kalkulasi
             $table->timestamp('calculated_at')
@@ -48,11 +63,12 @@ return new class extends Migration
                 ->references('nis')->on('students')
                 ->cascadeOnDelete();
             
-            // Unique Constraint: Satu siswa hanya punya 1 summary per semester
-            $table->unique(['student_id', 'semester'], 'grade_summaries_unique_constraint');
+            // Unique Constraint: Satu siswa hanya punya 1 summary per tahun ajaran & semester
+            $table->unique(['student_id', 'academic_year_id', 'semester'], 'grade_summaries_unique_constraint');
             
             // Indexes untuk performa query
             $table->index('student_id');
+            $table->index('academic_year_id');
             $table->index('semester');
         });
     }

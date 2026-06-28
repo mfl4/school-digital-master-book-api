@@ -26,7 +26,7 @@ class GradeSummarySeeder extends Seeder
         $this->command->info("Calculating grade summaries...");
 
         // Get all unique student-semester combinations from grades
-        $combinations = Grade::select('student_id', 'semester')
+        $combinations = Grade::select('student_id', 'academic_year_id', 'semester')
             ->distinct()
             ->get();
 
@@ -37,6 +37,7 @@ class GradeSummarySeeder extends Seeder
         foreach ($combinations as $combo) {
             // Calculate total and average for this student-semester
             $summary = Grade::where('student_id', $combo->student_id)
+                ->where('academic_year_id', $combo->academic_year_id)
                 ->where('semester', $combo->semester)
                 ->selectRaw('
                     SUM(score) as total_score,
@@ -53,6 +54,7 @@ class GradeSummarySeeder extends Seeder
             $gradeSummary = GradeSummary::updateOrCreate(
                 [
                     'student_id' => $combo->student_id,
+                    'academic_year_id' => $combo->academic_year_id,
                     'semester' => $combo->semester,
                 ],
                 [
@@ -77,11 +79,12 @@ class GradeSummarySeeder extends Seeder
         $this->command->info("  - Total: {$totalSummaries}");
 
         // Verify integrity
-        $gradesWithoutSummary = Grade::select('student_id', 'semester')
+        $gradesWithoutSummary = Grade::select('student_id', 'academic_year_id', 'semester')
             ->distinct()
             ->get()
             ->filter(function ($grade) {
                 return !GradeSummary::where('student_id', $grade->student_id)
+                    ->where('academic_year_id', $grade->academic_year_id)
                     ->where('semester', $grade->semester)
                     ->exists();
             })

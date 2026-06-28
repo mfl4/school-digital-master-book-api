@@ -34,8 +34,8 @@ return new class extends Migration
             // Field opsional berdasarkan role
             $table->unsignedBigInteger('subject')->nullable()
                 ->comment('ID mata pelajaran - hanya untuk role guru');
-            $table->string('class', 10)->nullable()
-                ->comment('Kode kelas (X-1, XI-2, XII-3) - hanya untuk role wali_kelas');
+            $table->unsignedBigInteger('classroom_id')->nullable()
+                ->comment('ID kelas - hanya untuk role wali_kelas');
             $table->string('alumni', 20)->nullable()
                 ->comment('NIM alumni - hanya untuk role alumni');
 
@@ -45,7 +45,7 @@ return new class extends Migration
             // Index untuk performa query
             $table->index('role');
             $table->index('subject');
-            $table->index('class');
+            $table->index('classroom_id');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

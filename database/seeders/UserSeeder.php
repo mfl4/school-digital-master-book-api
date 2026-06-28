@@ -28,11 +28,11 @@ class UserSeeder extends Seeder
         
         User::create([
             'name' => 'Administrator',
-            'email' => 'admin@mail.com',
+            'email' => 'admin@school.sch.id',
             'password' => Hash::make('password'),
             'role' => 'admin',
             'subject' => null,
-            'class' => null,
+            'classroom_id' => null,
             'alumni' => null,
         ]);
         $totalUsers++;
@@ -45,11 +45,11 @@ class UserSeeder extends Seeder
         
         // Note: Subject IDs will be auto-incremented, so we use predictable IDs
         $guruData = [
-            ['name' => 'Budi Santoso', 'email' => 'guru.matematika@mail.com', 'subject' => 1], // Matematika
-            ['name' => 'Siti Rahayu', 'email' => 'guru.bahasa.indonesia@mail.com', 'subject' => 2], // Bahasa Indonesia
-            ['name' => 'Ahmad Fauzi', 'email' => 'guru.bahasa.inggris@mail.com', 'subject' => 3], // Bahasa Inggris
-            ['name' => 'Dewi Kusuma', 'email' => 'guru.fisika@mail.com', 'subject' => 4], // Fisika
-            ['name' => 'Eko Wijaya', 'email' => 'guru.kimia@mail.com', 'subject' => 5], // Kimia
+            ['name' => 'Budi Santoso', 'email' => 'guru.matematika@school.sch.id', 'subject' => 1], // Matematika
+            ['name' => 'Siti Rahayu', 'email' => 'guru.bahasa.indonesia@school.sch.id', 'subject' => 2], // Bahasa Indonesia
+            ['name' => 'Ahmad Fauzi', 'email' => 'guru.bahasa.inggris@school.sch.id', 'subject' => 3], // Bahasa Inggris
+            ['name' => 'Dewi Kusuma', 'email' => 'guru.fisika@school.sch.id', 'subject' => 4], // Fisika
+            ['name' => 'Eko Wijaya', 'email' => 'guru.kimia@school.sch.id', 'subject' => 5], // Kimia
         ];
 
         foreach ($guruData as $guru) {
@@ -59,7 +59,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => 'guru',
                 'subject' => $guru['subject'],
-                'class' => null,
+                'classroom_id' => null,
                 'alumni' => null,
             ]);
             $totalUsers++;
@@ -72,10 +72,10 @@ class UserSeeder extends Seeder
         // ====================
         
         $waliKelasData = [
-            ['name' => 'Siti Aminah', 'email' => 'wali.x1@mail.com', 'class' => 'X-1'],
-            ['name' => 'Bambang Sutrisno', 'email' => 'wali.x2@mail.com', 'class' => 'X-2'],
-            ['name' => 'Rina Setiawati', 'email' => 'wali.xi1@mail.com', 'class' => 'XI-1'],
-            ['name' => 'Hendra Gunawan', 'email' => 'wali.xii1@mail.com', 'class' => 'XII-1'],
+            ['name' => 'Siti Aminah', 'email' => 'wali.x1@school.sch.id', 'classroom_id' => 1],
+            ['name' => 'Bambang Sutrisno', 'email' => 'wali.x2@school.sch.id', 'classroom_id' => 2],
+            ['name' => 'Rina Setiawati', 'email' => 'wali.xi1@school.sch.id', 'classroom_id' => 4],
+            ['name' => 'Hendra Gunawan', 'email' => 'wali.xii1@school.sch.id', 'classroom_id' => 7],
         ];
 
         foreach ($waliKelasData as $wali) {
@@ -85,7 +85,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => 'wali_kelas',
                 'subject' => null,
-                'class' => $wali['class'],
+                'classroom_id' => $wali['classroom_id'],
                 'alumni' => null,
             ]);
             $totalUsers++;
@@ -99,16 +99,16 @@ class UserSeeder extends Seeder
         
         // Alumni users terhubung dengan data alumni yang sudah dibuat
         $alumniUsers = [
-            ['name' => 'Andi Wijaya', 'email' => 'andi.wijaya@email.com', 'nim' => 'A2023001'],
-            ['name' => 'Budi Santoso', 'email' => 'budi.santoso@email.com', 'nim' => 'A2023002'],
-            ['name' => 'Citra Dewi', 'email' => 'citra.dewi@email.com', 'nim' => 'A2023003'],
-            ['name' => 'Dewi Lestari', 'email' => 'dewi.lestari@email.com', 'nim' => 'A2023004'],
-            ['name' => 'Eko Prasetyo', 'email' => 'eko.prasetyo@email.com', 'nim' => 'A2023005'],
-            ['name' => 'Fitri Handayani', 'email' => 'fitri.handayani@email.com', 'nim' => 'A2022001'],
-            ['name' => 'Galih Pratama', 'email' => 'galih.pratama@email.com', 'nim' => 'A2022002'],
-            ['name' => 'Hana Permata', 'email' => 'hana.permata@email.com', 'nim' => 'A2022003'],
-            ['name' => 'Indra Gunawan', 'email' => 'indra.gunawan@email.com', 'nim' => 'A2022004'],
-            ['name' => 'Joko Susanto', 'email' => 'joko.susanto@email.com', 'nim' => 'A2022005'],
+            ['name' => 'Andi Wijaya', 'email' => 'andi.wijaya@school.sch.id', 'nim' => 'A2023001'],
+            ['name' => 'Budi Santoso', 'email' => 'budi.santoso@school.sch.id', 'nim' => 'A2023002'],
+            ['name' => 'Citra Dewi', 'email' => 'citra.dewi@school.sch.id', 'nim' => 'A2023003'],
+            ['name' => 'Dewi Lestari', 'email' => 'dewi.lestari@school.sch.id', 'nim' => 'A2023004'],
+            ['name' => 'Eko Prasetyo', 'email' => 'eko.prasetyo@school.sch.id', 'nim' => 'A2023005'],
+            ['name' => 'Fitri Handayani', 'email' => 'fitri.handayani@school.sch.id', 'nim' => 'A2022001'],
+            ['name' => 'Galih Pratama', 'email' => 'galih.pratama@school.sch.id', 'nim' => 'A2022002'],
+            ['name' => 'Hana Permata', 'email' => 'hana.permata@school.sch.id', 'nim' => 'A2022003'],
+            ['name' => 'Indra Gunawan', 'email' => 'indra.gunawan@school.sch.id', 'nim' => 'A2022004'],
+            ['name' => 'Joko Susanto', 'email' => 'joko.susanto@school.sch.id', 'nim' => 'A2022005'],
         ];
 
         foreach ($alumniUsers as $alum) {
@@ -118,7 +118,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => 'alumni',
                 'subject' => null,
-                'class' => null,
+                'classroom_id' => null,
                 'alumni' => $alum['nim'], // Link to alumni table by NIM
             ]);
             $totalUsers++;

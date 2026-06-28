@@ -29,18 +29,7 @@ class StudentFactory extends Factory
      * Daftar kelas yang tersedia
      */
     protected static array $classes = [
-        'X-1',
-        'X-2',
-        'X-3',
-        'X-4',
-        'XI-1',
-        'XI-2',
-        'XI-3',
-        'XI-4',
-        'XII-1',
-        'XII-2',
-        'XII-3',
-        'XII-4',
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
     ];
 
     /**
@@ -54,9 +43,7 @@ class StudentFactory extends Factory
         // Generate NISN (10 digit)
         $nisn = '00' . fake()->unique()->numerify('########');
 
-        // Pilih kelas random dan nomor absen
         $class = fake()->randomElement(self::$classes);
-        $absen = str_pad(fake()->numberBetween(1, 36), 2, '0', STR_PAD_LEFT);
 
         // Gender untuk nama yang sesuai
         $gender = fake()->randomElement(['L', 'P']);
@@ -75,7 +62,6 @@ class StudentFactory extends Factory
             'father_name' => fake('id_ID')->firstNameMale() . ' ' . fake('id_ID')->lastName(),
             'address' => fake('id_ID')->address() . ' RT ' . fake()->numberBetween(1, 15) . '/RW ' . fake()->numberBetween(1, 10),
             'ijazah_number' => fake()->optional(0.7)->regexify('DN-[A-Z]{2}/[0-9]{6}/[0-9]{4}'),
-            'rombel_absen' => $class . '-' . $absen,
             'last_edited_by' => null,
             'last_edited_ip' => null,
             'last_edited_at' => null,
@@ -85,13 +71,13 @@ class StudentFactory extends Factory
     /**
      * Set kelas tertentu
      */
-    public function inClass(string $class): static
+    public function inClass(int $classId): static
     {
-        return $this->state(function (array $attributes) use ($class) {
-            $absen = str_pad(fake()->numberBetween(1, 36), 2, '0', STR_PAD_LEFT);
-            return [
-                'rombel_absen' => $class . '-' . $absen,
-            ];
+        return $this->afterCreating(function (Student $student) use ($classId) {
+            $academicYear = \App\Models\AcademicYear::orderBy('id', 'desc')->first();
+            if ($academicYear) {
+                $student->classHistories()->attach($classId, ['academic_year_id' => $academicYear->id]);
+            }
         });
     }
 

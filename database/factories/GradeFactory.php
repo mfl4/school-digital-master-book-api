@@ -22,15 +22,14 @@ class GradeFactory extends Factory
     {
         // Daftar semester yang tersedia
         $semesters = [
-            'Ganjil 2023/2024',
-            'Genap 2023/2024',
-            'Ganjil 2024/2025',
-            'Genap 2024/2025',
+            'odd',
+            'even',
         ];
 
         return [
             'student_id' => Student::inRandomOrder()->first()?->nis ?? 'default',
             'subject_id' => Subject::inRandomOrder()->first()?->id ?? 1,
+            'academic_year_id' => \App\Models\AcademicYear::inRandomOrder()->first()?->id ?? 1,
             'semester' => fake()->randomElement($semesters),
             'score' => fake()->numberBetween(70, 100), // Realistic scores untuk testing
             'last_edited_by' => User::where('role', 'admin')->first()?->id ?? 1,

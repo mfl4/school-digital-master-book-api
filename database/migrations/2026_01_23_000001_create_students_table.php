@@ -53,8 +53,6 @@ return new class extends Migration
             // Data Akademik
             $table->string('ijazah_number', 50)->nullable()
                 ->comment('Nomor seri ijazah SMP/MTs');
-            $table->string('rombel_absen', 10)
-                ->comment('Rombongan belajar dan nomor absen (misal: X-1-01)');
 
             // Tracking perubahan data
             $table->foreignId('last_edited_by')->nullable()
@@ -70,7 +68,7 @@ return new class extends Migration
             // Indexes untuk performa query
             $table->index('nisn');
             $table->index('name');
-            $table->index('rombel_absen');
+
             $table->index('gender');
         });
     }

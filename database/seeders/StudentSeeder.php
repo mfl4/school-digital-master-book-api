@@ -19,18 +19,7 @@ class StudentSeeder extends Seeder
      * Daftar kelas aktif
      */
     protected array $activeClasses = [
-        'X-1',
-        'X-2',
-        'X-3',
-        'X-4',
-        'XI-1',
-        'XI-2',
-        'XI-3',
-        'XI-4',
-        'XII-1',
-        'XII-2',
-        'XII-3',
-        'XII-4',
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
     ];
 
     /**
@@ -49,11 +38,11 @@ class StudentSeeder extends Seeder
         // ====================
         // 1. SISWA AKTIF
         // ====================
-        foreach ($this->activeClasses as $class) {
+        foreach ($this->activeClasses as $classId) {
             // Buat 10 siswa per kelas
             Student::factory()
                 ->count(10)
-                ->inClass($class)
+                ->inClass($classId)
                 ->create([
                     'last_edited_by' => $admin?->id,
                     'last_edited_ip' => '127.0.0.1',
@@ -71,17 +60,17 @@ class StudentSeeder extends Seeder
         
         // Data siswa yang sudah lulus (akan terhubung dengan alumni)
         $graduatedStudents = [
-            ['nis' => '2020001', 'name' => 'Andi Wijaya', 'class' => 'XII-1', 'year' => 2023],
-            ['nis' => '2020002', 'name' => 'Budi Santoso', 'class' => 'XII-1', 'year' => 2023],
-            ['nis' => '2020003', 'name' => 'Citra Dewi', 'class' => 'XII-2', 'year' => 2023],
-            ['nis' => '2020004', 'name' => 'Dewi Lestari', 'class' => 'XII-2', 'year' => 2023],
-            ['nis' => '2020005', 'name' => 'Eko Prasetyo', 'class' => 'XII-3', 'year' => 2023],
+            ['nis' => '2020001', 'name' => 'Andi Wijaya', 'year' => 2023],
+            ['nis' => '2020002', 'name' => 'Budi Santoso', 'year' => 2023],
+            ['nis' => '2020003', 'name' => 'Citra Dewi', 'year' => 2023],
+            ['nis' => '2020004', 'name' => 'Dewi Lestari', 'year' => 2023],
+            ['nis' => '2020005', 'name' => 'Eko Prasetyo', 'year' => 2023],
             
-            ['nis' => '2019001', 'name' => 'Fitri Handayani', 'class' => 'XII-1', 'year' => 2022],
-            ['nis' => '2019002', 'name' => 'Galih Pratama', 'class' => 'XII-2', 'year' => 2022],
-            ['nis' => '2019003', 'name' => 'Hana Permata', 'class' => 'XII-3', 'year' => 2022],
-            ['nis' => '2019004', 'name' => 'Indra Gunawan', 'class' => 'XII-4', 'year' => 2022],
-            ['nis' => '2019005', 'name' => 'Joko Susanto', 'class' => 'XII-1', 'year' => 2022],
+            ['nis' => '2019001', 'name' => 'Fitri Handayani', 'year' => 2022],
+            ['nis' => '2019002', 'name' => 'Galih Pratama', 'year' => 2022],
+            ['nis' => '2019003', 'name' => 'Hana Permata', 'year' => 2022],
+            ['nis' => '2019004', 'name' => 'Indra Gunawan', 'year' => 2022],
+            ['nis' => '2019005', 'name' => 'Joko Susanto', 'year' => 2022],
         ];
 
         foreach ($graduatedStudents as $grad) {
@@ -96,7 +85,6 @@ class StudentSeeder extends Seeder
                 'father_name' => 'Ayah ' . $grad['name'],
                 'address' => 'Jl. Contoh No. ' . rand(1, 100) . ', Jakarta Selatan',
                 'ijazah_number' => 'IJ-' . $grad['year'] . '-' . rand(1000, 9999),
-                'rombel_absen' => $grad['class'] . '-' . str_pad(rand(1, 35), 2, '0', STR_PAD_LEFT),
                 'last_edited_by' => $admin?->id,
                 'last_edited_ip' => '127.0.0.1',
                 'last_edited_at' => now(),

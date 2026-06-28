@@ -37,7 +37,13 @@ class DatabaseSeeder extends Seeder
         $startTime = microtime(true);
 
         $this->call([
-            // 1. Users - Must be first (foreign key in other tables)
+            // 0. Classrooms - Must be first (foreign key for users and students)
+            ClassroomSeeder::class,
+
+            // 0.5. Academic Years - Must be first (foreign key for grades)
+            AcademicYearSeeder::class,
+
+            // 1. Users - Base users (admin, guru, wali kelas, alumni)
             UserSeeder::class,
             
             // 2. Subjects - Needed for guru users and grades
@@ -100,10 +106,10 @@ class DatabaseSeeder extends Seeder
 
         $this->command->newLine();
         $this->command->info("🔐 TEST CREDENTIALS:");
-        $this->command->info("  Admin:         admin@mail.com / password");
-        $this->command->info("  Guru:          guru.matematika@mail.com / password");
-        $this->command->info("  Wali Kelas:    wali.x1@mail.com / password");
-        $this->command->info("  Alumni:        andi.wijaya@email.com / password");
+        $this->command->info("  Admin:         admin@school.sch.id / password");
+        $this->command->info("  Guru:          guru.matematika@school.sch.id / password");
+        $this->command->info("  Wali Kelas:    wali.x1@school.sch.id / password");
+        $this->command->info("  Alumni:        andi.wijaya@school.sch.id / password");
         $this->command->newLine();
 
         $this->command->info("💡 NEXT STEPS:");
