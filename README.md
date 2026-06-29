@@ -63,7 +63,7 @@ Pastikan Anda telah menginstal PHP 8.4+, Composer, dan PostgreSQL di sistem Anda
    ```bash
    php artisan serve
    ```
-   API akan berjalan di `http://localhost:8000`.
+   API akan berjalan di `http://127.0.0.1:8000`.
 
 ---
 
