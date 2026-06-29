@@ -36,7 +36,12 @@ class GradeService
         // Filter berdasarkan kelas
         if (isset($filters['class'])) {
             $query->whereHas('student.classHistories', function ($q) use ($filters) {
-                $q->where('classrooms.id', $filters['class']);
+                if (is_numeric($filters['class'])) {
+                    $q->where('classrooms.id', $filters['class']);
+                } else {
+                    $q->where('classrooms.name', $filters['class']);
+                }
+                
                 if (isset($filters['academic_year_id'])) {
                     $q->where('student_classrooms.academic_year_id', $filters['academic_year_id']);
                 }

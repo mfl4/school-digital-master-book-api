@@ -55,18 +55,7 @@ class GradeSummary extends Model
 
     // === ACCESSORS ===
 
-    // Ambil GPA (Indeks Prestasi) format 0.00 - 4.00
-    public function getGradePointAverageAttribute(): float
-    {
-        // Konversi dari rata-rata 0-100 ke GPA 0-4
-        return round(($this->average_score / 100) * 4, 2);
-    }
 
-    // Get status kelulusan berdasarkan rata-rata (Lulus jika >= 75)
-    public function getStatusAttribute(): string
-    {
-        return $this->average_score >= 75 ? 'Lulus' : 'Tidak Lulus';
-    }
 
     // === SCOPES ===
 
@@ -88,11 +77,6 @@ class GradeSummary extends Model
         return $query->where('student_id', $nis);
     }
 
-    // Filter berdasarkan status kelulusan (average >= 75)
-    public function scopePassing($query)
-    {
-        return $query->where('average_score', '>=', 75);
-    }
 
     // Filter berdasarkan kelas (dari student's history at that academic year)
     public function scopeByClass($query, $classId)

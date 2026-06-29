@@ -31,10 +31,6 @@ class GradeSummaryController extends Controller
             $query->byAcademicYear($request->academic_year_id);
         }
 
-        // Filter berdasarkan status kelulusan
-        if ($request->filled('passing') && $request->boolean('passing')) {
-            $query->passing();
-        }
 
         $summaries = $query->latest('calculated_at')->paginate($request->input('per_page', 15));
 
@@ -81,8 +77,6 @@ class GradeSummaryController extends Controller
                 'lowest_score' => $summary->lowest_score,
                 'lowest_subject' => $summary->lowest_subject,
                 'class_name' => $summary->class_name,
-                'grade_point_average' => $summary->grade_point_average,
-                'status' => $summary->status,
                 'calculated_at' => $summary->calculated_at,
                 'grades' => $gradesDetail,
             ],
@@ -110,10 +104,7 @@ class GradeSummaryController extends Controller
             $query->byAcademicYear($request->academic_year_id);
         }
 
-        // Filter berdasarkan status kelulusan
-        if ($request->filled('passing') && $request->boolean('passing')) {
-            $query->passing();
-        }
+
 
         $summaries = $query->latest('calculated_at')->paginate($request->input('per_page', 15));
 
